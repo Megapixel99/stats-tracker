@@ -104,9 +104,11 @@ module.exports = {
       res.status(200).send('pong');
     });
 
-    config.urls.forEach((url) => {
-      configureWebSocket(url);
-    });
+    if (config.urls.length > 0) {
+      config.urls.forEach((url) => {
+        configureWebSocket(url);
+      });
+    }
 
     app.listen(config.port);
 
