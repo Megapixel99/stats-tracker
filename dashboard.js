@@ -1,4 +1,5 @@
 const { dashboard } = require('./index.js');
+require('dotenv').config()
 
 dashboard({
   port: process.env.PORT,
