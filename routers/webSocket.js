@@ -51,7 +51,6 @@ function handleConnection(ws) {
       .save());
     }
     await Promise.all(p);
-    // console.log(jsonData);
     switch (jsonData.type) {
       case 'memory':
         models.server.findOneAndUpdate({
