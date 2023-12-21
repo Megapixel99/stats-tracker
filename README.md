@@ -83,4 +83,6 @@ dashboard({
 });
 ```
 
+If you want to spin up the dashboard as a standalone application you can run: `npm run dashboard`
+
 ### For a full (running/working) demo, please see `demo.js` in the demo folder
