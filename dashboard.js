@@ -3,6 +3,6 @@ require('dotenv').config()
 
 dashboard({
   port: process.env.PORT,
-  mongoUrl: process.ENV.MONGO_URL,
-  urls: process.ENV.URLS.split(','),
+  mongoUrl: process.env.MONGO_URL,
+  urls: process.env.URLS.split(','),
 });
