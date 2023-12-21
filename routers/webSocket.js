@@ -114,7 +114,8 @@ function handleConnection(ws) {
         update.$push = {
           jobs: {
             name: jsonData.jobName,
-            ...jsonData
+            start: jsonData.start,
+            duration: jsonData.duration,
           }
         };
         models.stats.findOneAndUpdate({ server: jsonData.name }, update).exec();
