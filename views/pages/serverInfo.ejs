@@ -1,0 +1,188 @@
+<body>
+  <style media="screen">
+    #table {
+      display: block;
+    }
+
+    #table-title {
+      float: left;
+      max-width: fit-content;
+      padding: 12px 15px;
+    }
+
+    #table-search {
+      float: right;
+      width: inherit;
+      max-width: inherit;
+      height: 44.5px;
+      margin: 0;
+    }
+
+    .stats {
+      max-width: 20%;
+      flex: 0 0 20%;
+    }
+  </style>
+  <!-- Main content -->
+  <div class="main-content">
+    <!-- Top navbar -->
+    <nav class="navbar navbar-top navbar-expand-md navbar-dark" id="navbar-main">
+      <div class="container-fluid">
+        <!-- Brand -->
+        <p class="h4 mb-0 text-white text-uppercase d-none d-lg-inline-block"><%= name %></p>
+        <a class="h4 mb-0 text-white text-uppercase d-none d-lg-inline-block" href="/">Back to Dashboard</a>
+      </div>
+    </nav>
+    <!-- Header -->
+    <div class="header bg-gradient-primary pb-8 pt-5 pt-md-8">
+      <div class="container-fluid">
+        <div class="header-body">
+          <!-- Card stats -->
+          <div class="row">
+            <div class="col-xl-3 col-lg-6 stats">
+              <div class="card card-stats mb-4 mb-xl-0">
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col">
+                      <h5 class="card-title text-uppercase text-muted mb-0">Bytes Sent to External Apps</h5>
+                      <span class="h2 font-weight-bold mb-0"><%= formatBytes(bytes.sent) %></span>
+                    </div>
+                    <div class="col-auto">
+                      <div class="icon icon-shape bg-danger text-white rounded-circle shadow">
+                        <i class="fas fa-chart-bar"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 stats">
+              <div class="card card-stats mb-4 mb-xl-0">
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col">
+                      <h5 class="card-title text-uppercase text-muted mb-0">Bytes Received from External Apps</h5>
+                      <span class="h2 font-weight-bold mb-0"><%= formatBytes(bytes.received) %></span>
+                    </div>
+                    <div class="col-auto">
+                      <div class="icon icon-shape bg-warning text-white rounded-circle shadow">
+                        <i class="fas fa-chart-pie"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 stats">
+              <div class="card card-stats mb-4 mb-xl-0">
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col">
+                      <h5 class="card-title text-uppercase text-muted mb-0">Database Rows Written</h5>
+                      <span class="h2 font-weight-bold mb-0"><%= database.written %> Rows</span>
+                    </div>
+                    <div class="col-auto">
+                      <div class="icon icon-shape bg-yellow text-white rounded-circle shadow">
+                        <i class="fas fa-users"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 stats">
+              <div class="card card-stats mb-4 mb-xl-0">
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col">
+                      <h5 class="card-title text-uppercase text-muted mb-0">Database Rows Read</h5>
+                      <span class="h2 font-weight-bold mb-0"><%= database.read %> Rows</span>
+                    </div>
+                    <div class="col-auto">
+                      <div class="icon icon-shape bg-info text-white rounded-circle shadow">
+                        <i class="fas fa-percent"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 stats">
+              <div class="card card-stats mb-4 mb-xl-0">
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col">
+                      <h5 class="card-title text-uppercase text-muted mb-0">Number of Times Utilized</h5>
+                      <span class="h2 font-weight-bold mb-0"><%= utilized %></span>
+                    </div>
+                    <div class="col-auto">
+                      <div class="icon icon-shape bg-danger text-white rounded-circle shadow">
+                        <i class="fas fa-chart-bar"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Page content -->
+    <div class="container-fluid mt--7">
+      <div class="row mt-5">
+        <div class="col-xl-12 mb-5 mb-xl-0">
+          <div class="card shadow">
+            <div class="card-header border-0">
+              <div class="row align-items-center" id="table">
+                <div class="col-xl-9" id="table-title">
+                  <h3 class="mb-0">Jobs</h3>
+                </div>
+                <div class="col-xl-2 text-right" id="table-search">
+                  <!-- <a href="#!" class="btn btn-sm btn-primary">See all</a> -->
+                  <form class="navbar-search navbar-search-dark form-inline d-none d-md-flex ml-lg-auto">
+                    <div class="form-group mb-0">
+                      <div class="input-group input-group-alternative">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        </div>
+                        <input class="form-control" placeholder="Search" type="text" style="width: auto;">
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <!-- Projects table -->
+              <table class="table align-items-center table-flush">
+                <thead class="thead-light">
+                  <tr>
+                    <th scope="col">Job Name</th>
+                    <th scope="col">Average Load time</th>
+                    <th scope="col">Last Ran</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% jobs.forEach(function(job) { %>
+                    <tr>
+                      <th scope="row">
+                        <%= job.name %>
+                      </th>
+                      <td>
+                        <i class="fas <% if(job.lastRanTime > job.averageTime) { %> fa-arrow-up text-danger <% } else if(job.lastRanTime < job.averageTime) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= formatSeconds(job.lastRanTime) %>
+                      </td>
+                      <td>
+                        <%= job.lastRan %>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
