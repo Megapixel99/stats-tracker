@@ -1,0 +1,27 @@
+{
+  "name": "stats-tracker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Megapixel99/stats-tracker.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Megapixel99/stats-tracker/issues"
+  },
+  "homepage": "https://github.com/Megapixel99/stats-tracker#readme",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-ejs-layouts": "^2.5.1",
+    "helmet": "^7.1.0",
+    "mongoose": "^8.0.2",
+    "pidusage": "^3.0.2",
+  }
+}
