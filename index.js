@@ -29,7 +29,7 @@ module.exports = {
             ...stats,
           }));
         })
-      }, 2500);
+      }, 10000);
     });
 
     wss.on('close', function close() {
