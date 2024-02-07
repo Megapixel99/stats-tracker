@@ -6,6 +6,15 @@ let failedAttempts = 0;
 
 const WebSocket = require('ws');
 
+const errFunc = (err) => {
+  failedAttempts += 1;
+  console.error(err);
+  if (failedAttempts >= 5) {
+    clearInterval(reconnectInterval);
+    console.log(`Unable to connect to ${url} after ${failedAttempts} attempts`);
+  }
+};
+
 function connect(wsUrl) {
   url = wsUrl;
   let ws = new WebSocket(url);
@@ -13,18 +22,12 @@ function connect(wsUrl) {
     clearInterval(reconnectInterval);
     handleConnection(ws);
   });
-  ws.on('error', (err) => {
-    failedAttempts += 1;
-    console.error(err);
-    if (failedAttempts >= 5) {
-      clearInterval(reconnectInterval);
-      console.log(`Unable to connect to ${url} after ${failedAttempts} attempts`);
-    }
-  });
+  ws.on('error', errFunc);
 }
 
 function handleConnection(ws) {
-  ws.on('error', console.error);
+  failedAttempts = 0;
+  ws.on('error', errFunc);
 
   ws.on('message', async (data) => {
     let jsonData = JSON.parse(data);
