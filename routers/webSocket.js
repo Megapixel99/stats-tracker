@@ -15,18 +15,18 @@ const errFunc = (err) => {
   }
 };
 
-function connect(wsUrl) {
+function connect(wsUrl, usageLength) {
   url = wsUrl;
   let ws = new WebSocket(url);
   ws.on('open', function() {
     clearInterval(reconnectInterval);
     console.log(`Connected to ${url}`);
-    handleConnection(ws);
+    handleConnection(ws, usageLength);
   });
   ws.on('error', errFunc);
 }
 
-function handleConnection(ws) {
+function handleConnection(ws, usageLength) {
   failedAttempts = 0;
   ws.on('error', errFunc);
 
@@ -74,10 +74,13 @@ function handleConnection(ws) {
          },
          $push: {
            usage: {
-             date: new Date(),
-             cpuUsage: jsonData.cpu,
-             memoryUsage: jsonData.memory,
-           }
+             $each: [{
+               date: new Date(),
+               cpuUsage: jsonData.cpu,
+               memoryUsage: jsonData.memory,
+             }],
+            $slice: Math.abs(usageLength) * -1
+          }
          }
        }).exec();
         break;

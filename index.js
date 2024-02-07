@@ -105,8 +105,12 @@ module.exports = {
     });
 
     if (config.urls.length > 0) {
+      let usageLength = config.usageLength;
+      if ([undefined, null].includes(config.usageLength) || Number.isNaN(config.usageLength)) {
+        usageLength = 100;
+      }
       config.urls.forEach((url) => {
-        configureWebSocket(url);
+        configureWebSocket(url, usageLength);
       });
     }
 
