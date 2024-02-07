@@ -80,6 +80,7 @@ dashboard({
   port: 3000,
   mongoUrl: 'mongodb://yourUrl',
   urls: ['ws://firstTracker', 'ws://secondTracker']
+  usageLength: 100 // determines how much CPU usage info to save in the database (for the average CPU usage to be determined), defaults to 100 and is updated every 5 seconds
 });
 ```
 
