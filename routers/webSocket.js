@@ -2,6 +2,7 @@ const models = require('../database/models.js');
 
 let reconnectInterval;
 let url;
+let failedAttempts = 0;
 
 const WebSocket = require('ws');
 
@@ -11,6 +12,14 @@ function connect(wsUrl) {
   ws.on('open', function() {
     clearInterval(reconnectInterval);
     handleConnection(ws);
+  });
+  ws.on('error', (err) => {
+    failedAttempts += 1;
+    console.error(err);
+    if (failedAttempts >= 5) {
+      clearInterval(reconnectInterval);
+      console.log(`Unable to connect to ${url} after ${failedAttempts} attempts`);
+    }
   });
 }
 
