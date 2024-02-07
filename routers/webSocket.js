@@ -20,6 +20,7 @@ function connect(wsUrl) {
   let ws = new WebSocket(url);
   ws.on('open', function() {
     clearInterval(reconnectInterval);
+    console.log(`Connected to ${url}`);
     handleConnection(ws);
   });
   ws.on('error', errFunc);
@@ -136,6 +137,7 @@ function handleConnection(ws) {
 
   ws.on('close', function() {
     reconnectInterval = setInterval(() => {
+      console.log(`Disconnected from ${url}`);
       connect(url);
     }, 10000);
   });
