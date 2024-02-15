@@ -43,13 +43,13 @@ module.exports = {
           isConnected() ? ws.send(JSON.stringify({
             type: 'bytes.sent',
             ...config,
-            bytes: Buffer.byteLength(String(data), 'utf8'),
+            bytes: !Number.isNaN(data) ? data : Buffer.byteLength(String(data), 'utf8'),
           })) : null,
         received: (data) =>
           isConnected() ? ws.send(JSON.stringify({
             type: 'bytes.received',
             ...config,
-            bytes: Buffer.byteLength(String(data), 'utf8'),
+            bytes: !Number.isNaN(data) ? data : Buffer.byteLength(String(data), 'utf8'),
           })) : null,
       },
       database: {
