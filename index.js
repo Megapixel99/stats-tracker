@@ -5,6 +5,7 @@ const configureWebSocket = require('./routers/webSocket.js');
 const dbConn = require('./database/connection.js');
 const { WebSocketServer } = require('ws');
 const pidusage = require('pidusage');
+const { serialize } = require('v8')
 
 module.exports = {
   tracker: (config, logger = console) => {
@@ -43,13 +44,13 @@ module.exports = {
           isConnected() ? ws.send(JSON.stringify({
             type: 'bytes.sent',
             ...config,
-            bytes: !Number.isNaN(data) ? data : Buffer.byteLength(String(data), 'utf8'),
+            bytes: serialize(data).byteLength,
           })) : null,
         received: (data) =>
           isConnected() ? ws.send(JSON.stringify({
             type: 'bytes.received',
             ...config,
-            bytes: !Number.isNaN(data) ? data : Buffer.byteLength(String(data), 'utf8'),
+            bytes:serialize(data).byteLength,
           })) : null,
       },
       database: {
