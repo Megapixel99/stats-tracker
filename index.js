@@ -54,16 +54,16 @@ module.exports = {
       isConnected,
       bytes: {
         sent: (data) =>
-          isConnected() ? ws.send(JSON.stringify({
+          isConnected() && !Number.isNaN(data) ? ws.send(JSON.stringify({
             type: 'bytes.sent',
             ...config,
-            bytes: serialize(data).byteLength,
+            bytes: data,
           })) : null,
         received: (data) =>
-          isConnected() ? ws.send(JSON.stringify({
+          isConnected() && !Number.isNaN(data) ? ws.send(JSON.stringify({
             type: 'bytes.received',
             ...config,
-            bytes:serialize(data).byteLength,
+            bytes: data,
           })) : null,
       },
       database: {
