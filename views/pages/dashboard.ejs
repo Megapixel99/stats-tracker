@@ -162,7 +162,7 @@
                       </td>
                       <td>
                       <% server.pods.forEach(function(pod, i) { %>
-                        <p> <i class="fas <% if(server.cpuUsage > server.avgCpuUsage) { %> fa-arrow-up text-danger <% } else if(server.cpuUsage < server.avgCpuUsage) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= server.cpuUsage %>% </p>
+                        <p> <i class="fas <% if(pod.cpuUsage > pod.avgCpuUsage) { %> fa-arrow-up text-danger <% } else if(server.cpuUsage < server.avgCpuUsage) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= pod.cpuUsage %>% </p>
                         <% if (i < server.pods.length - 1) { %>
                           <hr style="width: calc(100% + 3rem);">
                         <% } %>
@@ -170,7 +170,7 @@
                       </td>
                       <td>
                       <% server.pods.forEach(function(pod, i) { %>
-                        <p> <i class="fas <% if(server.memoryUsage > server.avgMemoryUsage) { %> fa-arrow-up text-danger <% } else if(server.memoryUsage < server.avgMemoryUsage) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= formatBytes(server.memoryUsage) %> </p>
+                        <p> <i class="fas <% if(pod.memoryUsage > pod.avgMemoryUsage) { %> fa-arrow-up text-danger <% } else if(server.memoryUsage < server.avgMemoryUsage) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= formatBytes(pod.memoryUsage) %> </p>
                         <% if (i < server.pods.length - 1) { %>
                           <hr style="width: 100%;">
                         <% } %>
