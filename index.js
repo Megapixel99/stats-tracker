@@ -66,6 +66,20 @@ module.exports = {
             bytes: data,
           })) : null,
       },
+      data: {
+        sent: (data) =>
+          isConnected() ? ws.send(JSON.stringify({
+            type: 'bytes.sent',
+            ...config,
+            bytes: serialize(data).byteLength,
+          })) : null,
+        received: (data) =>
+          isConnected() ? ws.send(JSON.stringify({
+            type: 'bytes.received',
+            ...config,
+            bytes:serialize(data).byteLength,
+          })) : null,
+      },
       database: {
         read: (data) =>
           isConnected() ? ws.send(JSON.stringify({
