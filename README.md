@@ -23,11 +23,19 @@ The functions that `tracker` exposes are:
 
 `bytes.sent(data)`:
 
-The `data` argument the function takes is assumed to be `utf8` and will be converted into a String, then a Buffer so the number of bytes can be sent to the dashboard.
+The `data` argument the function takes needs to be a number and is assumed to be the number of bytes sent.
 
 `bytes.received(data)`:
 
-The `data` argument the function takes is assumed to be `utf8` and will be converted into a String, then a Buffer so the number of bytes can be sent to the dashboard.
+The `data` argument the function takes needs to be a number and is assumed to be the number of bytes received.
+
+`data.sent(data)`:
+
+The `data` argument the function takes is assumed to be raw data and thus will be serialized and converted to bytes.
+
+`data.received(data)`:
+
+The `data` argument the function takes is assumed to be raw data and thus will be serialized and converted to bytes.
 
 `database.read(data)`:
 
