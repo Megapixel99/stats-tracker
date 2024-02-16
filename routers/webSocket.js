@@ -155,7 +155,7 @@ function handleConnection(ws, usageLength) {
   ws.on('close', function() {
     reconnectInterval = setInterval(() => {
       console.log(`Disconnected from ${url}`);
-      connect(url);
+      connect(url, usageLength);
     }, 10000);
   });
 };
