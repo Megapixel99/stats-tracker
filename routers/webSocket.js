@@ -29,17 +29,16 @@ function connect(wsUrl, usageLength) {
 function handleConnection(ws, usageLength) {
   failedAttempts = 0;
   ws.on('error', errFunc);
-  let conditions;
 
   ws.on('message', async (data) => {
     let jsonData = JSON.parse(data);
+    let conditions = {
+      server: jsonData.name,
+      pod: jsonData.pod,
+      active: true,
+    };
     switch (jsonData.type) {
       case 'create':
-        conditions = {
-          server: jsonData.name,
-          pod: jsonData.pod,
-          active: true,
-        };
         const server = (await models.server.findOne(conditions).lean());
         const stats = (await models.stats.findOne({ server: jsonData.name }).lean());
         let p = [];
