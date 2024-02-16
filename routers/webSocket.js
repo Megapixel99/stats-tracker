@@ -29,80 +29,92 @@ function connect(wsUrl, usageLength) {
 function handleConnection(ws, usageLength) {
   failedAttempts = 0;
   ws.on('error', errFunc);
+  let conditions;
 
   ws.on('message', async (data) => {
     let jsonData = JSON.parse(data);
-    let conditions = {
-      server: jsonData.name,
-      pod: jsonData.pod,
-      active: true,
-    };
-    const server = (await models.server.findOne({ server: jsonData.name }).lean());
-    const stats = (await models.stats.findOne(conditions).lean());
-    let p = []
-    if (!server) {
-      p.push(new models.server({
-        server: jsonData.name,
-        usage: [{
-          date: new Date(),
-          cpuUsage: 0,
-          memoryUsage: 0,
-        }],
-        uptime: 0,
-      })
-      .save());
-    }
-    if (!stats) {
-      p.push(new models.stats({
-        ...conditions,
-        date: new Date(),
-        bytes: {
-          sent: 0,
-          received: 0,
-        },
-        databaseRows: {
-          read: 0,
-          written: 0,
-        },
-        jobs: []
-      })
-      .save());
-    }
-    await Promise.all(p);
     switch (jsonData.type) {
+      case 'create':
+        conditions = {
+          server: jsonData.name,
+          pod: jsonData.pod,
+          active: true,
+        };
+        const server = (await models.server.findOne(conditions).lean());
+        const stats = (await models.stats.findOne({ server: jsonData.name }).lean());
+        let p = [];
+        if (!server) {
+          p.push(new models.server({
+            ...conditions,
+            usage: [{
+              date: new Date(),
+              cpuUsage: 0,
+              memoryUsage: 0,
+            }],
+            uptime: 0,
+          })
+          .save());
+        }
+        if (!stats) {
+          p.push(new models.stats({
+            ...conditions,
+            date: new Date(),
+            bytes: {
+              sent: 0,
+              received: 0,
+            },
+            databaseRows: {
+              read: 0,
+              written: 0,
+            },
+            jobs: [],
+          })
+          .save());
+        }
+        await Promise.all(p);
+        ws.send(JSON.stringify({
+          status: 'created',
+        }))
+        break;
       case 'memory':
-        models.server.findOneAndUpdate(conditions, {
-         $set: {
-           uptime: jsonData.elapsed / 1000,
-         },
-         $push: {
-           usage: {
-             $each: [{
-               date: new Date(),
-               cpuUsage: jsonData.cpu,
-               memoryUsage: jsonData.memory,
-             }],
-            $slice: Math.abs(usageLength) * -1
-          }
-         }
-       }).exec();
+        if (conditions) {
+          models.server.findOneAndUpdate(conditions, {
+           $set: {
+             uptime: jsonData.elapsed / 1000,
+           },
+           $push: {
+             usage: {
+               $each: [{
+                 date: new Date(),
+                 cpuUsage: jsonData.cpu,
+                 memoryUsage: jsonData.memory,
+               }],
+              $slice: Math.abs(usageLength) * -1
+            }
+           }
+         }).exec();
+        }
         break;
       case 'bytes.received':
-        models.stats.findOneAndUpdate(conditions, {
-          $inc: {
-            'bytes.received': jsonData.bytes,
-          }
-        }).exec();
+        if (conditions) {
+          models.stats.findOneAndUpdate(conditions, {
+            $inc: {
+              'bytes.received': jsonData.bytes,
+            }
+          }).exec();
+        }
         break;
       case 'bytes.sent':
-        models.stats.findOneAndUpdate(conditions, {
-          $inc: {
-            'bytes.sent': jsonData.bytes,
-          }
-        }).exec();
+        if (conditions) {
+          models.stats.findOneAndUpdate(conditions, {
+            $inc: {
+              'bytes.sent': jsonData.bytes,
+            }
+          }).exec();
+        }
         break;
       case 'database.written':
-        if (!Number.isNaN(jsonData.rows)) {
+        if (!Number.isNaN(jsonData.rows) && conditions) {
           models.stats.findOneAndUpdate(conditions, {
             $inc: {
               'databaseRows.written': jsonData.rows,
@@ -111,7 +123,7 @@ function handleConnection(ws, usageLength) {
         }
         break;
       case 'database.read':
-        if (!Number.isNaN(jsonData.rows)) {
+        if (!Number.isNaN(jsonData.rows) && conditions) {
           models.stats.findOneAndUpdate(conditions, {
             $inc: {
               'databaseRows.read': jsonData.rows,
@@ -120,22 +132,26 @@ function handleConnection(ws, usageLength) {
         }
         break;
       case 'job':
-        let update = {};
-        update.$push = {
-          jobs: {
-            name: jsonData.jobName,
-            start: jsonData.start,
-            duration: jsonData.duration,
-          }
-        };
-        models.stats.findOneAndUpdate(conditions, update).exec();
+        if (conditions) {
+          let update = {};
+          update.$push = {
+            jobs: {
+              name: jsonData.jobName,
+              start: jsonData.start,
+              duration: jsonData.duration,
+            }
+          };
+          models.stats.findOneAndUpdate(conditions, update).exec();
+        }
         break;
       case 'app.close':
-        models.stats.findOneAndUpdate(conditions, {
-          $set: {
-            active: false,
-          }
-        }).exec();
+        if (conditions) {
+          models.stats.findOneAndUpdate(conditions, {
+            $set: {
+              active: false,
+            }
+          }).exec();
+        }
         break;
     }
   });
