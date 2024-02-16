@@ -50,12 +50,12 @@ This function will stop a job and data about the job will be sent to the dashboa
 #### How to use job.start() and job.stop()
 
 ```javascript
-
 const { tracker } = require('stats-tracker');
 
 let t = tracker({
   port: 3001,
   name: 'test',
+  pod: 'test-1',
 });
 
 let job1 = t.job.start('jobName');
@@ -79,8 +79,8 @@ const { dashboard } = require('stats-tracker');
 dashboard({
   port: 3000,
   mongoUrl: 'mongodb://yourUrl',
-  urls: ['ws://firstTracker', 'ws://secondTracker']
-  usageLength: 100 // determines how much CPU usage info to save in the database (for the average CPU usage to be determined), defaults to 100 and is updated every 5 seconds
+  urls: ['ws://firstTracker', 'ws://secondTracker'],
+  usageLength: 100, // determines how much CPU usage info to save in the database (for the average CPU usage to be determined), defaults to 100 and is updated every 5 seconds
 });
 ```
 

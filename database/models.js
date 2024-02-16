@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const serverSchema = mongoose.Schema({
   server: String,
+  pod: String,
+  active: Boolean,
   usage: [{
     date: Date,
     cpuUsage: Number,

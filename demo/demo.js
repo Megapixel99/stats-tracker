@@ -4,6 +4,7 @@ const { mongoUrl } = require('./env.js');
 let t = tracker({
   port: 3001,
   name: 'test',
+  pod: 'test-1'
 });
 
 dashboard({

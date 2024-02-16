@@ -32,8 +32,13 @@ function handleConnection(ws, usageLength) {
 
   ws.on('message', async (data) => {
     let jsonData = JSON.parse(data);
+    let conditions = {
+      server: jsonData.name,
+      pod: jsonData.pod,
+      active: true,
+    };
     const server = (await models.server.findOne({ server: jsonData.name }).lean());
-    const stats = (await models.stats.findOne({ server: jsonData.name }).lean());
+    const stats = (await models.stats.findOne(conditions).lean());
     let p = []
     if (!server) {
       p.push(new models.server({
@@ -49,8 +54,8 @@ function handleConnection(ws, usageLength) {
     }
     if (!stats) {
       p.push(new models.stats({
+        ...conditions,
         date: new Date(),
-        server: jsonData.name,
         bytes: {
           sent: 0,
           received: 0,
@@ -66,9 +71,7 @@ function handleConnection(ws, usageLength) {
     await Promise.all(p);
     switch (jsonData.type) {
       case 'memory':
-        models.server.findOneAndUpdate({
-         server: jsonData.name,
-        }, {
+        models.server.findOneAndUpdate(conditions, {
          $set: {
            uptime: jsonData.elapsed / 1000,
          },
@@ -85,28 +88,22 @@ function handleConnection(ws, usageLength) {
        }).exec();
         break;
       case 'bytes.received':
-        models.stats.findOneAndUpdate({
-          server: jsonData.name,
-        }, {
+        models.stats.findOneAndUpdate(conditions, {
           $inc: {
             'bytes.received': jsonData.bytes,
           }
         }).exec();
         break;
       case 'bytes.sent':
-        models.stats.findOneAndUpdate({
-            server: jsonData.name,
-          }, {
-            $inc: {
-              'bytes.sent': jsonData.bytes,
-            }
-          }).exec();
+        models.stats.findOneAndUpdate(conditions, {
+          $inc: {
+            'bytes.sent': jsonData.bytes,
+          }
+        }).exec();
         break;
       case 'database.written':
         if (!Number.isNaN(jsonData.rows)) {
-          models.stats.findOneAndUpdate({
-            server: jsonData.name,
-          }, {
+          models.stats.findOneAndUpdate(conditions, {
             $inc: {
               'databaseRows.written': jsonData.rows,
             }
@@ -115,9 +112,7 @@ function handleConnection(ws, usageLength) {
         break;
       case 'database.read':
         if (!Number.isNaN(jsonData.rows)) {
-          models.stats.findOneAndUpdate({
-            server: jsonData.name,
-          }, {
+          models.stats.findOneAndUpdate(conditions, {
             $inc: {
               'databaseRows.read': jsonData.rows,
             }
@@ -133,7 +128,8 @@ function handleConnection(ws, usageLength) {
             duration: jsonData.duration,
           }
         };
-        models.stats.findOneAndUpdate({ server: jsonData.name }, update).exec();
+        models.stats.findOneAndUpdate(conditions, update).exec();
+        break;
       case 'app.close':
         models.stats.findOneAndUpdate(conditions, {
           $set: {

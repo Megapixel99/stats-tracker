@@ -23,19 +23,36 @@ const formatSeconds = (seconds, decimals = 3) => {
 }
 
 router.get('/', async (req, res) => {
-  const servers = (await models.server.find().lean());
+  const serverPods = (await models.server.find({ active: true }).lean());
   const stats = (await models.stats.find().lean());
+  let servers = [];
+  serverPods.forEach((pod) => {
+    let s = servers.find((e) => e.name === pod.server);
+    if (!s) {
+      servers.push({
+        name: pod.server,
+        pods: [pod],
+      });
+    } else {
+      s.pods.push(pod);
+    }
+  });
   let serverStats = servers.map((e) => {
-    let s = stats.find((i) => i.server === e.server);
+    let s = stats.find((i) => i.server === e.name);
     if (s) {
-      let m = e.usage.map((i) => i.memoryUsage);
-      let c = e.usage.map((i) => i.cpuUsage);
       return {
-        name: e.server,
-        cpuUsage: e.usage.at(-1).cpuUsage.toFixed(2),
-        memoryUsage: e.usage.at(-1).memoryUsage,
-        avgCpuUsage: c.reduce((a, b) => a + b) / c.length,
-        avgMemoryUsage: m.reduce((a, b) => a + b) / m.length,
+        name: e.name,
+        pods: e.pods.map((o) => {
+          let m = o.usage.map((i) => i.memoryUsage);
+          let c = o.usage.map((i) => i.cpuUsage);
+          return {
+            name: o.pod,
+            cpuUsage: o.usage.at(-1).cpuUsage.toFixed(2),
+            memoryUsage: o.usage.at(-1).memoryUsage,
+            avgCpuUsage: c.reduce((a, b) => a + b) / c.length,
+            avgMemoryUsage: m.reduce((a, b) => a + b) / m.length
+          };
+        }),
         bytesSent: s.bytes.sent,
         bytesReceived: s.bytes.received,
       };
@@ -57,7 +74,7 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/server/:serverName', async (req, res) => {
-  const server = (await models.server.findOne({ server: req.params.serverName }).lean());
+  const server = (await models.server.findOne({ server: req.params.serverName, active: true }).lean());
   const stats = (await models.stats.findOne({ server: req.params.serverName }).lean());
   if (server && stats) {
     let jobs = [];

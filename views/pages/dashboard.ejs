@@ -1,4 +1,26 @@
 <body>
+  <style media="screen">
+    tbody p {
+      padding: 0.25vh 0.25vw;
+      border-radius: calc(.25rem - 1px);
+      font-size: 11.375px;
+      width: fit-content;
+      margin: 10px 0;
+      font-weight: 400;
+    }
+    tbody a {
+      cursor: pointer;
+      background-color: #5e72e4;
+      color: white;
+      padding: 0.25vh 0.25vw;
+      border-radius: calc(.25rem - 1px);
+      font-size: 11.375px;
+      width: fit-content;
+    }
+    hr {
+      margin: inherit;
+    }
+  </style>
   <!-- Main content -->
   <div class="main-content">
     <!-- Top navbar -->
@@ -116,7 +138,8 @@
               <table class="table align-items-center table-flush">
                 <thead class="thead-light">
                   <tr>
-                    <th scope="col">Server Cluster name</th>
+                    <th scope="col">Server Cluster Name</th>
+                    <th scope="col">Pod Name</th>
                     <th scope="col">CPU Usage</th>
                     <th scope="col">Memory Usage</th>
                     <th scope="col">Bytes Sent</th>
@@ -127,13 +150,31 @@
                   <% serverStats.forEach(function(server) { %>
                     <tr >
                       <th scope="row">
-                        <a href="/server/<%= server.name %>" style="cursor: pointer; background-color: #5e72e4; color: white; padding: 0.25vh 0.25vw; border-radius: calc(.25rem - 1px);"> <%= server.name %> </a>
+                        <a href="/server/<%= server.name %>"> <%= server.name %> </a>
                       </th>
                       <td>
-                        <i class="fas <% if(server.cpuUsage > server.avgCpuUsage) { %> fa-arrow-up text-danger <% } else if(server.cpuUsage < server.avgCpuUsage) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= server.cpuUsage %>%
+                      <% server.pods.forEach(function(pod, i) { %>
+                        <p style="background-color: #93a0ed; font-weight: 600; color: white;"> <%= pod.name %> </p>
+                        <% if (i < server.pods.length - 1) { %>
+                          <hr style="width: calc(100% + 3rem);">
+                        <% } %>
+                      <% }); %>
                       </td>
                       <td>
-                        <i class="fas <% if(server.memoryUsage > server.avgMemoryUsage) { %> fa-arrow-up text-danger <% } else if(server.memoryUsage < server.avgMemoryUsage) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= formatBytes(server.memoryUsage) %>
+                      <% server.pods.forEach(function(pod, i) { %>
+                        <p> <i class="fas <% if(server.cpuUsage > server.avgCpuUsage) { %> fa-arrow-up text-danger <% } else if(server.cpuUsage < server.avgCpuUsage) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= server.cpuUsage %>% </p>
+                        <% if (i < server.pods.length - 1) { %>
+                          <hr style="width: calc(100% + 3rem);">
+                        <% } %>
+                      <% }); %>
+                      </td>
+                      <td>
+                      <% server.pods.forEach(function(pod, i) { %>
+                        <p> <i class="fas <% if(server.memoryUsage > server.avgMemoryUsage) { %> fa-arrow-up text-danger <% } else if(server.memoryUsage < server.avgMemoryUsage) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= formatBytes(server.memoryUsage) %> </p>
+                        <% if (i < server.pods.length - 1) { %>
+                          <hr style="width: 100%;">
+                        <% } %>
+                      <% }); %>
                       </td>
                       <td>
                         <%= formatBytes(server.bytesSent) %>
