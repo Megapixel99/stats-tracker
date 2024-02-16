@@ -47,10 +47,10 @@ router.get('/', async (req, res) => {
           let c = o.usage.map((i) => i.cpuUsage);
           return {
             name: o.pod,
-            cpuUsage: o.usage.at(-1).cpuUsage.toFixed(2),
-            memoryUsage: o.usage.at(-1).memoryUsage,
-            avgCpuUsage: c.reduce((a, b) => a + b) / c.length,
-            avgMemoryUsage: m.reduce((a, b) => a + b) / m.length
+            cpuUsage: o.usage.length >= 1 ? o.usage.at(-1).cpuUsage.toFixed(2) : 0,
+            memoryUsage: o.usage.length >= 1 ? o.usage.at(-1).memoryUsage : 0,
+            avgCpuUsage: c.length >= 1 ? c.reduce((a, b) => a + b) / c.length : 0,
+            avgMemoryUsage: m.length >= 1 ? m.reduce((a, b) => a + b) / m.length : 0,
           };
         }),
         bytesSent: s.bytes.sent,
