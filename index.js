@@ -85,13 +85,27 @@ module.exports = {
           isConnected() ? ws.send(JSON.stringify({
             type: 'database.read',
             ...config,
-            rows: (data.length || data),
+            rows: [data].flat(1),
           })) : null,
         written: (data) =>
           isConnected() ? ws.send(JSON.stringify({
             type: 'database.written',
             ...config,
-            rows: (data.length || data),
+            rows: [data].flat(1),
+          })) : null,
+      },
+      databaseRows: {
+        read: (data) =>
+          isConnected() && !Number.isNaN(data) ? ws.send(JSON.stringify({
+            type: 'database.read',
+            ...config,
+            rows: data,
+          })) : null,
+        written: (data) =>
+          isConnected() && !Number.isNaN(data) ? ws.send(JSON.stringify({
+            type: 'database.written',
+            ...config,
+            rows: data,
           })) : null,
       },
       job: {

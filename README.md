@@ -45,6 +45,14 @@ The `data` argument the function takes is assumed to be a JSON array and the len
 
 The `data` argument the function takes is assumed to be a JSON array and the length of the JSON array will be sent to the dashboard.
 
+`databaseRows.sent(data)`:
+
+The `data` argument the function takes needs to be a number and is assumed to be the number of rows sent.
+
+`databaseRows.received(data)`:
+
+The `data` argument the function takes needs to be a number and is assumed to be the number of rows received.
+
 `job.start(jobName [, start])`:
 
 This function will start a job, and returns a job so you can stop it later, it is up to you to end the job manually with `job.stop()`.
