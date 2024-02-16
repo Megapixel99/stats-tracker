@@ -134,6 +134,12 @@ function handleConnection(ws, usageLength) {
           }
         };
         models.stats.findOneAndUpdate({ server: jsonData.name }, update).exec();
+      case 'app.close':
+        models.stats.findOneAndUpdate(conditions, {
+          $set: {
+            active: false,
+          }
+        }).exec();
         break;
     }
   });

@@ -5,6 +5,7 @@ const configureWebSocket = require('./routers/webSocket.js');
 const dbConn = require('./database/connection.js');
 const { WebSocketServer } = require('ws');
 const pidusage = require('pidusage');
+var nodeCleanup = require('node-cleanup');
 const { serialize } = require('v8')
 
 module.exports = {
@@ -14,6 +15,7 @@ module.exports = {
     delete config.port;
 
     let ws = null;
+    let interval = null;
 
     const isConnected = () =>  ws ? true : false;
 
@@ -22,7 +24,14 @@ module.exports = {
 
       ws.on('error', logger.error);
 
-      setInterval(function inter() {
+      nodeCleanup(function (exitCode, signal) {
+        ws.send(JSON.stringify({
+          type: 'app.close',
+          ...config,
+        }));
+      });
+
+      interval = setInterval(function inter() {
         pidusage(process.pid).then((stats) => {
           ws.send(JSON.stringify({
             type: 'memory',
@@ -35,6 +44,10 @@ module.exports = {
 
     wss.on('close', function close() {
       ws = null;
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
     });
 
     return {

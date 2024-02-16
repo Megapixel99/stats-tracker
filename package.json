@@ -23,6 +23,7 @@
     "express-ejs-layouts": "^2.5.1",
     "helmet": "^7.1.0",
     "mongoose": "^8.0.2",
+    "node-cleanup": "^2.1.2",
     "pidusage": "^3.0.2",
     "ws": "^8.15.1"
   }
