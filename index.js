@@ -53,7 +53,6 @@ module.exports = {
     });
 
     createInterval = setInterval(function inter() {
-      console.log(isConnected());
       if (isConnected()) {
         clearInterval(createInterval);
         ws.send(JSON.stringify({
