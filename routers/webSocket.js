@@ -72,9 +72,6 @@ function handleConnection(ws, usageLength) {
           .save());
         }
         await Promise.all(p);
-        ws.send(JSON.stringify({
-          status: 'created',
-        }));
         break;
       case 'memory':
         if (conditions) {

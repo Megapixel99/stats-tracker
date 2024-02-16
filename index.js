@@ -16,10 +16,8 @@ module.exports = {
 
     let ws = null;
     let interval = null;
-    let ready = false;
 
     const isConnected = () =>  ws ? true : false;
-    const isReady = () =>  ws && ready ? true : false;
 
     wss.on('connection', (webSock) => {
       ws = webSock;
@@ -59,13 +57,6 @@ module.exports = {
           type: 'create',
           ...config,
         }));
-
-        ws.on('message', async (data) => {
-          let jsonData = JSON.parse(data);
-          if (jsonData.created === true) {
-            ready = true;
-          }
-        });
       }
     }, 1000);
 
@@ -74,13 +65,13 @@ module.exports = {
       isConnected,
       bytes: {
         sent: (data) =>
-          isReady() && !Number.isNaN(data) ? ws.send(JSON.stringify({
+          isConnected() && !Number.isNaN(data) ? ws.send(JSON.stringify({
             type: 'bytes.sent',
             ...config,
             bytes: data,
           })) : null,
         received: (data) =>
-          isReady() && !Number.isNaN(data) ? ws.send(JSON.stringify({
+          isConnected() && !Number.isNaN(data) ? ws.send(JSON.stringify({
             type: 'bytes.received',
             ...config,
             bytes: data,
@@ -88,13 +79,13 @@ module.exports = {
       },
       data: {
         sent: (data) =>
-          isReady() ? ws.send(JSON.stringify({
+          isConnected() ? ws.send(JSON.stringify({
             type: 'bytes.sent',
             ...config,
             bytes: serialize(data).byteLength,
           })) : null,
         received: (data) =>
-          isReady() ? ws.send(JSON.stringify({
+          isConnected() ? ws.send(JSON.stringify({
             type: 'bytes.received',
             ...config,
             bytes:serialize(data).byteLength,
@@ -102,13 +93,13 @@ module.exports = {
       },
       database: {
         read: (data) =>
-          isReady() ? ws.send(JSON.stringify({
+          isConnected() ? ws.send(JSON.stringify({
             type: 'database.read',
             ...config,
             rows: [data].flat(1).length,
           })) : null,
         written: (data) =>
-          isReady() ? ws.send(JSON.stringify({
+          isConnected() ? ws.send(JSON.stringify({
             type: 'database.written',
             ...config,
             rows: [data].flat(1).length,
@@ -116,13 +107,13 @@ module.exports = {
       },
       databaseRows: {
         read: (data) =>
-          isReady() && !Number.isNaN(data) ? ws.send(JSON.stringify({
+          isConnected() && !Number.isNaN(data) ? ws.send(JSON.stringify({
             type: 'database.read',
             ...config,
             rows: data,
           })) : null,
         written: (data) =>
-          isReady() && !Number.isNaN(data) ? ws.send(JSON.stringify({
+          isConnected() && !Number.isNaN(data) ? ws.send(JSON.stringify({
             type: 'database.written',
             ...config,
             rows: data,
@@ -132,7 +123,7 @@ module.exports = {
         start: (jobName, start = Date.now()) => {
           return {
             stop: () =>
-              isReady() ? ws.send(JSON.stringify({
+              isConnected() ? ws.send(JSON.stringify({
                 type: 'job',
                 ...config,
                 start,
