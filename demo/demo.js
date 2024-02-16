@@ -21,17 +21,29 @@ let inter = setInterval(function () {
       j.stop();
     }, 10000);
 
-    t.bytes.sent({
-      'p': 'p',
+    t.data.sent({
+      'test': 'data',
     });
 
-    t.bytes.received({
-      'p': 'p',
+    t.data.received({
+      'test': 'data',
     });
 
-    t.database.read(20);
+    t.bytes.sent(10);
 
-    t.database.written(25);
+    t.bytes.received(15);
+
+    t.databaseRows.read(20);
+
+    t.databaseRows.written(25);
+
+    t.database.read([{
+      'test': 'data',
+    }]);
+
+    t.database.written([{
+      'test': 'data',
+    }]);
 
     clearInterval(inter);
   }
