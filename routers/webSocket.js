@@ -142,7 +142,7 @@ function handleConnection(ws, usageLength) {
         break;
       case 'app.close':
         if (conditions) {
-          models.stats.findOneAndUpdate(conditions, {
+          models.server.findOneAndUpdate(conditions, {
             $set: {
               active: false,
             }

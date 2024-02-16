@@ -29,6 +29,8 @@ module.exports = {
           type: 'app.close',
           ...config,
         }));
+        setTimeout(() => process.exit(0), 1000);
+        return false;
       });
 
       interval = setInterval(function inter() {
