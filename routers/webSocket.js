@@ -6,35 +6,35 @@ let failedAttempts = 0;
 
 const WebSocket = require('ws');
 
-const errFunc = (err) => {
+const errFunc = (err, logger = console) => {
   failedAttempts += 1;
-  console.error(err);
+  logger.error(err);
   if (failedAttempts >= 5) {
     clearInterval(reconnectInterval);
-    console.log(`Unable to connect to ${url} after ${failedAttempts} attempts`);
+    logger.log(`Unable to connect to ${url} after ${failedAttempts} attempts`);
   }
 };
 
-function connect(wsUrl, usageLength) {
+function connect(wsUrl, usageLength, logger = console) {
   url = wsUrl;
   let ws = new WebSocket(url);
   ws.on('open', function() {
     clearInterval(reconnectInterval);
-    console.log(`Connected to ${url}`);
+    logger.log(`Connected to ${url}`);
     handleConnection(ws, usageLength);
   });
   ws.on('error', errFunc);
 }
 
-function handleConnection(ws, usageLength) {
+function handleConnection(ws, usageLength, logger = console) {
   failedAttempts = 0;
-  ws.on('error', errFunc);
+  ws.on('error', (err) => errFunc(err, logger));
 
   ws.on('message', async (data) => {
     let jsonData = JSON.parse(data);
     let conditions = {
       server: jsonData.name,
-      pod: jsonData.pod,
+      pod: (jsonData.pod || jsonData.name),
       active: true,
     };
     switch (jsonData.type) {
@@ -154,8 +154,8 @@ function handleConnection(ws, usageLength) {
 
   ws.on('close', function() {
     reconnectInterval = setInterval(() => {
-      console.log(`Disconnected from ${url}`);
-      connect(url, usageLength);
+      logger.log(`Disconnected from ${url}`);
+      connect(url, usageLength, logger);
     }, 10000);
   });
 };

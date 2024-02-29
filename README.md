@@ -5,9 +5,9 @@ This module exposes two functions: `dashboard` and `tracker`
 The `tracker` function can be used to relay information about the current NodeJS
 process to the dashboard (wherever the `dashboard` function is running).
 
-## tracker(config [, logger])
+## tracker(config)
 
-The tracker takes two arguments, `config` and an optional `logger` (defaults to console). The tracker connects to the dashboard via web sockets and exposes a web socket server which the dashboard can connect to.
+The tracker takes one argument, `config`. The tracker connects to the dashboard via web sockets and exposes a web socket server which the dashboard can connect to.
 
 The `config` can be used to pass the port of the web socket server and the name of the application.
 ```javascript
@@ -16,6 +16,8 @@ const { tracker } = require('stats-tracker');
 let t = tracker({
   port: 3001,
   name: 'test',
+  pod: 'test-1', // useful if running multiple instances of the same application, defaults to the name, in this case `test`
+  logger: console, // defaults to console if nothing is passed
 });
 ```
 
@@ -85,9 +87,9 @@ job1.stop();
 
 The `dashboard` function exposes a web-based dashboard (built using `express` and `ejs`) to see information about the various trackers that are feeding information to it (via web sockets).
 
-The `dashboard` function take two arguments, a `config` argument and an optional `logger` (defaults to console).
+The `dashboard` function takes one argument, `config`.
 
-The `config` and be used to pass the port you want the dashboard to run on, the URL of the Mongo Database you will be using, and the url(s) or the various applications running the `tracker` function.
+The `config` and be used to pass the port you want the dashboard to run on, the URL of the Mongo Database you will be using, and the url(s) or the various applications running the `tracker` function along with `usageLength` a `logger`.
 
 ```javascript
 const { dashboard } = require('stats-tracker');
@@ -97,6 +99,7 @@ dashboard({
   mongoUrl: 'mongodb://yourUrl',
   urls: ['ws://firstTracker', 'ws://secondTracker'],
   usageLength: 100, // determines how much CPU usage info to save in the database (for the average CPU usage to be determined), defaults to 100 and is updated every 5 seconds
+  logger: console, // defaults to console if nothing is passed
 });
 ```
 

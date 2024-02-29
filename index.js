@@ -9,8 +9,12 @@ var nodeCleanup = require('node-cleanup');
 const { serialize } = require('v8')
 
 module.exports = {
-  tracker: (config, logger = console) => {
+  tracker: (config) => {
     const wss = new WebSocketServer({ port: config.port });
+
+    if (!config.logger) {
+      config.logger = console;
+    }
 
     delete config.port;
 
@@ -22,7 +26,7 @@ module.exports = {
     wss.on('connection', (webSock) => {
       ws = webSock;
 
-      ws.on('error', logger.error);
+      ws.on('error', config.logger.error);
 
       nodeCleanup(function (exitCode, signal) {
         ws.send(JSON.stringify({
@@ -137,8 +141,12 @@ module.exports = {
       }
     };
   },
-  dashboard: (config, logger = console) => {
-    dbConn.connect(config.mongoUrl);
+  dashboard: (config) => {
+    if (!config.logger) {
+      config.logger = console;
+    }
+
+    dbConn.connect(config.mongoUrl, config.logger);
 
     const app = express();
 
@@ -171,6 +179,6 @@ module.exports = {
 
     app.listen(config.port);
 
-    logger.log('Dashboard is ready');
+    config.logger.log('Dashboard is ready');
   }
 };
