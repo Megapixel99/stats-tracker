@@ -89,7 +89,7 @@ The `dashboard` function exposes a web-based dashboard (built using `express` an
 
 The `dashboard` function takes one argument, `config`.
 
-The `config` and be used to pass the port you want the dashboard to run on, the URL of the Mongo Database you will be using, and the url(s) or the various applications running the `tracker` function along with `usageLength` a `logger`.
+The `config` and be used to pass the port you want the dashboard to run on, the URL of the Mongo Database you will be using, and the url(s) or the various applications running the `tracker` function along with `usageLength` and a `logger`.
 
 ```javascript
 const { dashboard } = require('stats-tracker');
