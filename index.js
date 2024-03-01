@@ -40,7 +40,7 @@ module.exports = {
           type: 'app.close',
           ...config,
         }));
-        setTimeout(() => process.exit(0), 1000);
+        setTimeout(() => process.exit(0), 5000);
         return false;
       });
 
