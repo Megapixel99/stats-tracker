@@ -201,7 +201,7 @@ module.exports = {
 
     updateUrls(config.urls);
 
-    app.listen(config.port);
+    app.listen((config.port || 3000));
 
     config.logger.log('Dashboard is ready');
 
