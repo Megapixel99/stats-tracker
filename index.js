@@ -150,6 +150,8 @@ module.exports = {
 
     const app = express();
 
+    let listening = [];
+
     app.set('json spaces', 2);
     app.use(require('helmet')());
 
@@ -167,18 +169,34 @@ module.exports = {
       res.status(200).send('pong');
     });
 
-    if (config.urls.length > 0) {
-      let usageLength = config.usageLength;
-      if ([undefined, null].includes(config.usageLength) || Number.isNaN(config.usageLength)) {
-        usageLength = 100;
+    const updateUrls = (urls) => {
+      if (Array.isArray(urls)) {
+        if (urls.length > 0) {
+          if ([undefined, null].includes(config.usageLength) || Number.isNaN(config.usageLength)) {
+            usageLength = 100;
+          }
+          config.urls.forEach((url) => {
+            if (!listening.includes(url)) {
+              configureWebSocket(url, usageLength);
+              listening.push(url);
+            }
+          });
+        } else {
+          config.logger.log('No urls found');
+        }
+      } else {
+        throw new Error('updateUrls accepts an array');
       }
-      config.urls.forEach((url) => {
-        configureWebSocket(url, usageLength);
-      });
     }
+
+    updateUrls(config.urls);
 
     app.listen(config.port);
 
     config.logger.log('Dashboard is ready');
+
+    return {
+      updateUrls,
+    };
   }
 };
