@@ -159,16 +159,15 @@ module.exports = {
     let listening = [];
 
     app.set('json spaces', 2);
-    app.use(require('helmet')());
     app.set('views', `${__dirname}/views`);
 
     app.use(express.json());
     app.set('view engine', 'ejs');
     app.use(expressLayouts);
 
-    app.use('/css', express.static('./public/css'))
-    app.use('/js', express.static('./public/js'))
-    app.use('/vendor', express.static('./public/vendor'))
+    app.use("/", express.static(`${__dirname}/public`));
+
+    app.use(require('helmet')());
 
     app.use(client);
 
