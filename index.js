@@ -197,6 +197,7 @@ module.exports = {
 
     return {
       updateUrls,
+      expressServer: app,
     };
   }
 };
