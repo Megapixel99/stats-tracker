@@ -15,7 +15,7 @@ class WS {
       ws = new WebSocket(`ws://${this.url}`);
     }
 
-    ws.on('open', function() {
+    ws.on('open', () => {
       clearInterval(this.reconnectInterval);
       logger.log(`Connected to ${this.url}`);
       this.connected = true;
