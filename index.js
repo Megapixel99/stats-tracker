@@ -208,7 +208,7 @@ module.exports = {
 
     return {
       updateUrls,
-      appClose(name) {
+      appSetInactive(name) {
         models.server.findOneAndUpdate({ server: name }, {
           $set: {
             active: false,
