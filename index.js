@@ -179,8 +179,9 @@ module.exports = {
     const updateUrls = (urls) => {
       if (Array.isArray(urls)) {
         if (urls.length > 0) {
-          if ([undefined, null].includes(config.usageLength) || Number.isNaN(config.usageLength)) {
           let oldLength = listening.length;
+          let usageLength = config.usageLength;
+          if ([undefined, null].includes(usageLength) || Number.isNaN(usageLength)) {
             usageLength = 100;
           }
 
