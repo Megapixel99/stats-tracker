@@ -8,10 +8,10 @@ class WS {
     this.failedAttempts = 0;
     this.connected = false;
 
-    return this.connect();
+    return this.connect(wsUrl, usageLength, logger = console);
   }
 
-  connect () {
+  connect (wsUrl, usageLength, logger = console) {
     let ws;
     if (this.url.startsWith('ws://')) {
       ws = new WebSocket(this.url);

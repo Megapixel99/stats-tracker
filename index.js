@@ -7,7 +7,7 @@ const { WebSocketServer } = require('ws');
 const pidusage = require('pidusage');
 var nodeCleanup = require('node-cleanup');
 const { serialize } = require('v8')
-const models = require('../database/models.js');
+const models = require('./database/models.js');
 
 module.exports = {
   tracker: (config) => {
@@ -214,7 +214,7 @@ module.exports = {
             active: false,
           }
         }).exec();
-      }
+      },
       expressServer: app,
     };
   }
