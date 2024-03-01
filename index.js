@@ -1,7 +1,7 @@
 const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
 const client = require('./routers/client.js');
-const configureWebSocket = require('./routers/webSocket.js');
+const WS = require('./routers/webSocket.js');
 const dbConn = require('./database/connection.js');
 const { WebSocketServer } = require('ws');
 const pidusage = require('pidusage');
@@ -180,12 +180,15 @@ module.exports = {
       if (Array.isArray(urls)) {
         if (urls.length > 0) {
           if ([undefined, null].includes(config.usageLength) || Number.isNaN(config.usageLength)) {
+          let oldLength = listening.length;
             usageLength = 100;
           }
-          config.urls.forEach((url) => {
-            if (!listening.includes(url)) {
-              configureWebSocket(url, usageLength);
-              listening.push(url);
+
+          Promise.all(urls.filter((url) => !listening.includes(url)).map((url) => new WS(url, usageLength, config.logger)))
+          .then((urlArr) => listening.push(...(urlArr.filter((e) => e.connected === true))))
+          .then(() => {
+            if ((listening.length - oldLength) > 0) {
+              config.logger.log(`Listening to ${listening.length - oldLength} new urls`);
             }
           });
         } else {
