@@ -10,7 +10,13 @@ const { serialize } = require('v8')
 
 module.exports = {
   tracker: (config) => {
-    const wss = new WebSocketServer({ port: config.port });
+    let wss;
+
+    if (config.server) {
+      wss = new WebSocketServer({ server: config.server });
+    } else {
+      wss = new WebSocketServer({ port: config.port });
+    }
 
     if (!config.logger) {
       config.logger = console;

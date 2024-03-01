@@ -14,7 +14,8 @@ The `config` can be used to pass the port of the web socket server and the name 
 const { tracker } = require('stats-tracker');
 
 let t = tracker({
-  port: 3001,
+  server: server // configure the tracker to extend from your http/https server
+  port: 3001, // only needed if you do not pass a server
   name: 'test',
   pod: 'test-1', // useful if running multiple instances of the same application, defaults to the name, in this case `test`
   logger: console, // defaults to console if nothing is passed
