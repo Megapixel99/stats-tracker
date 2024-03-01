@@ -8,6 +8,10 @@ class WS {
     this.failedAttempts = 0;
     this.connected = false;
 
+    return this.connect();
+  }
+
+  connect () {
     let ws;
     if (this.url.startsWith('ws://')) {
       ws = new WebSocket(this.url);
@@ -183,7 +187,7 @@ class WS {
       this.reconnectInterval = setInterval(() => {
         this.connected = false;
         logger.log(`Disconnected from ${this.url}`);
-        connect(this.url, usageLength, logger);
+        this.connect(this.url, usageLength, logger);
       }, 10000);
     });
   };
