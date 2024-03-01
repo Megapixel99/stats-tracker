@@ -160,6 +160,7 @@ module.exports = {
 
     app.set('json spaces', 2);
     app.use(require('helmet')());
+    app.set('views', `${__dirname}/views`);
 
     app.use(express.json());
     app.set('view engine', 'ejs');
