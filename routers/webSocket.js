@@ -7,6 +7,7 @@ class WS {
     this.url = wsUrl;
     this.failedAttempts = 0;
     this.connected = false;
+    this.name;
 
     return this.connect(wsUrl, usageLength, logger = console);
   }
@@ -73,6 +74,7 @@ class WS {
           const server = (await models.server.findOne(conditions).lean());
           const stats = (await models.stats.findOne({ server: jsonData.name }).lean());
           let p = [];
+          this.name = jsonData.name;
           if (!server) {
             p.push(new models.server({
               ...conditions,
@@ -102,6 +104,13 @@ class WS {
             .save());
           }
           await Promise.all(p);
+          models.server.findOneAndUpdate({
+            server: this.name
+          }, {
+            $set: {
+              active: true,
+            }
+          }).exec();
           break;
         case 'memory':
           if (conditions) {
@@ -187,6 +196,13 @@ class WS {
       this.reconnectInterval = setInterval(() => {
         this.connected = false;
         logger.log(`Disconnected from ${this.url}`);
+        models.server.findOneAndUpdate({
+          server: this.name
+        }, {
+          $set: {
+            active: false,
+          }
+        }).exec();
         this.connect(this.url, usageLength, logger);
       }, 10000);
     });
