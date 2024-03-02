@@ -183,7 +183,7 @@ class WS {
       }
     });
 
-    ws.on('close', function() {
+    ws.on('close', () => {
       this.reconnectInterval = setInterval(() => {
         this.connected = false;
         logger.log(`Disconnected from ${this.url}`);
