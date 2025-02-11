@@ -2,61 +2,14 @@ const models = require('../database/models.js');
 const WebSocket = require('ws');
 
 class WS {
-  constructor(wsUrl, usageLength, logger = console) {
-    this.reconnectInterval;
-    this.url = wsUrl;
+  constructor(ws, usageLength = 100, logger = console) {
     this.failedAttempts = 0;
-    this.connected = false;
+    this.connected = true;
     this.name;
+    this.pod;
 
-    return this.connect(wsUrl, usageLength, logger = console);
+    return this.handleConnection(ws, usageLength);
   }
-
-  connect (wsUrl, usageLength, logger = console) {
-    let ws;
-    if (this.url.startsWith('ws://')) {
-      ws = new WebSocket(this.url);
-    } else {
-      ws = new WebSocket(`ws://${this.url}`);
-    }
-
-    ws.on('open', () => {
-      clearInterval(this.reconnectInterval);
-      logger.log(`Connected to ${this.url}`);
-      this.connected = true;
-      this.handleConnection(ws, usageLength);
-    });
-    ws.on('error', (err) => this.errFunc(err, logger));
-    return  new Promise((resolve, reject) => {
-      let t;
-      let int = setInterval(() => {
-        if (this.connected === true) {
-          clearInterval(int);
-          clearTimeout(t);
-          resolve({
-            url: this.url,
-            connected: this.connected,
-          });
-        }
-      }, 1000);
-      t = setTimeout(() => {
-        clearInterval(int);
-        resolve({
-          url: this.url,
-          connected: this.connected,
-        });
-      }, 60 * 1000);
-    });
-  }
-
-  errFunc (err, logger = console) {
-    this.failedAttempts += 1;
-    logger.error(err);
-    if (this.failedAttempts >= 5) {
-      clearInterval(this.reconnectInterval);
-      logger.log(`Unable to connect to ${url} after ${this.failedAttempts} attempts`);
-    }
-  };
 
   handleConnection(ws, usageLength, logger = console) {
     this.failedAttempts = 0;
@@ -64,10 +17,11 @@ class WS {
 
     ws.on('message', async (data) => {
       let jsonData = JSON.parse(data);
+      this.name = jsonData.name;
+      this.pod = (jsonData.pod || jsonData.name);
       let conditions = {
-        server: jsonData.name,
-        pod: (jsonData.pod || jsonData.name),
-        active: true,
+        server: this.name,
+        pod: this.pod,
       };
       switch (jsonData.type) {
         case 'create':
@@ -117,6 +71,7 @@ class WS {
             models.server.findOneAndUpdate(conditions, {
              $set: {
                uptime: jsonData.elapsed / 1000,
+               active: true,
              },
              $push: {
                usage: {
@@ -132,8 +87,8 @@ class WS {
           }
           break;
         case 'bytes.received':
-          if (conditions) {
-            models.stats.findOneAndUpdate(conditions, {
+          if (this.name) {
+            models.stats.findOneAndUpdate({ server: this.name }, {
               $inc: {
                 'bytes.received': jsonData.bytes,
               }
@@ -141,8 +96,8 @@ class WS {
           }
           break;
         case 'bytes.sent':
-          if (conditions) {
-            models.stats.findOneAndUpdate(conditions, {
+          if (this.name) {
+            models.stats.findOneAndUpdate({ server: this.name }, {
               $inc: {
                 'bytes.sent': jsonData.bytes,
               }
@@ -151,7 +106,7 @@ class WS {
           break;
         case 'database.written':
           if (!Number.isNaN(jsonData.rows) && conditions) {
-            models.stats.findOneAndUpdate(conditions, {
+            models.stats.findOneAndUpdate({ server: this.name }, {
               $inc: {
                 'databaseRows.written': jsonData.rows,
               }
@@ -160,7 +115,7 @@ class WS {
           break;
         case 'database.read':
           if (!Number.isNaN(jsonData.rows) && conditions) {
-            models.stats.findOneAndUpdate(conditions, {
+            models.stats.findOneAndUpdate({ server: this.name }, {
               $inc: {
                 'databaseRows.read': jsonData.rows,
               }
@@ -168,7 +123,7 @@ class WS {
           }
           break;
         case 'job':
-          if (conditions) {
+          if (this.name) {
             let update = {};
             update.$push = {
               jobs: {
@@ -177,7 +132,7 @@ class WS {
                 duration: jsonData.duration,
               }
             };
-            models.stats.findOneAndUpdate(conditions, update).exec();
+            models.stats.findOneAndUpdate({ server: this.name }, update).exec();
           }
           break;
         case 'app.close':
@@ -193,18 +148,11 @@ class WS {
     });
 
     ws.on('close', () => {
-      this.reconnectInterval = setInterval(() => {
-        this.connected = false;
-        logger.log(`Disconnected from ${this.url}`);
-        models.server.findOneAndUpdate({
-          server: this.name
-        }, {
-          $set: {
-            active: false,
-          }
-        }).exec();
-        this.connect(this.url, usageLength, logger);
-      }, 10000);
+      models.server.findOneAndUpdate(conditions, {
+       $set: {
+         active: false,
+       },
+      }).exec();
     });
   };
 }

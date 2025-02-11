@@ -4,6 +4,7 @@ const client = require('./routers/client.js');
 const WS = require('./routers/webSocket.js');
 const dbConn = require('./database/connection.js');
 const { WebSocketServer } = require('ws');
+const WebSocket = require('ws');
 const pidusage = require('pidusage');
 var nodeCleanup = require('node-cleanup');
 const { serialize } = require('v8')
@@ -11,29 +12,30 @@ const models = require('./database/models.js');
 
 module.exports = {
   tracker: (config) => {
-    let wss;
 
-    if (config.server) {
-      wss = new WebSocketServer({ server: config.server });
+    let ws;
+    if (config.url.startsWith('ws://')) {
+      ws = new WebSocket(config.url);
     } else {
-      wss = new WebSocketServer({ port: config.port });
+      ws = new WebSocket(`ws://${config.url}`);
     }
 
     if (!config.logger) {
       config.logger = console;
     }
 
-    delete config.port;
-
-    let ws = null;
     let interval = null;
 
-    const isConnected = () =>  ws ? true : false;
+    const isConnected = () =>  ws?._readyState === WebSocket.OPEN;
 
-    wss.on('connection', (webSock) => {
-      ws = webSock;
+    ws.on('error', config.logger.error);
 
-      ws.on('error', config.logger.error);
+    ws.on('open', (conn) => {
+
+      ws.send(JSON.stringify({
+        type: 'connect',
+        ...config,
+      }));
 
       nodeCleanup(function (exitCode, signal) {
         ws.send(JSON.stringify({
@@ -55,7 +57,7 @@ module.exports = {
       }, 10000);
     });
 
-    wss.on('close', function close() {
+    ws.on('close', function close() {
       ws = null;
       if (interval) {
         clearInterval(interval);
@@ -72,7 +74,6 @@ module.exports = {
         }));
       }
     }, 1000);
-
 
     return {
       isConnected,
@@ -168,46 +169,33 @@ module.exports = {
 
     app.use("/", express.static(`${__dirname}/public`));
 
-    app.use(require('helmet')());
-
     app.use(client);
 
     app.get('/ping', (req, res) => {
       res.status(200).send('pong');
     });
 
-    const updateUrls = (urls) => {
-      if (Array.isArray(urls)) {
-        if (urls.length > 0) {
-          let oldLength = listening.length;
-          let usageLength = config.usageLength;
-          if ([undefined, null].includes(usageLength) || Number.isNaN(usageLength)) {
-            usageLength = 100;
-          }
+    let wss = new WebSocketServer({ server: app.listen((config.port || 3000)) });
 
-          Promise.all(urls.filter((url) => !listening.includes(url)).map((url) => new WS(url, usageLength, config.logger)))
-          .then((urlArr) => listening.push(...(urlArr.filter((e) => e.connected === true))))
-          .then(() => {
-            if ((listening.length - oldLength) > 0) {
-              config.logger.log(`Listening to ${listening.length - oldLength} new urls`);
-            }
+    wss.on('connection', (ws) => {
+
+      ws.on('error', config.logger.error);
+
+      ws.on('message', function message(data) {
+        let jsonData = JSON.parse(data);
+        if (jsonData.type === 'connect' && !listening.some((e) => e.name === jsonData.name && e.pod === (jsonData.pod || jsonData.name))) {
+          listening.push({
+            name: jsonData.name,
+            pod: (jsonData.pod || jsonData.name),
           });
-        } else {
-          config.logger.log('No urls found');
+          new WS(ws, config.usageLength, config.logger);
         }
-      } else {
-        throw new Error('updateUrls accepts an array');
-      }
-    }
-
-    updateUrls(config.urls);
-
-    app.listen((config.port || 3000));
+      });
+    });
 
     config.logger.log('Dashboard is ready');
 
     return {
-      updateUrls,
       appSetInactive(name) {
         models.server.findOneAndUpdate({ server: name }, {
           $set: {
