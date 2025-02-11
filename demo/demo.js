@@ -1,17 +1,17 @@
 const { tracker, dashboard } = require('../index.js');
 const { mongoUrl } = require('./env.js');
 
+dashboard({
+  port: 3000,
+  mongoUrl: mongoUrl,
+})
+
 let t = tracker({
   port: 3001,
   name: 'test',
-  pod: 'test-1'
+  pod: 'test-1',
+  url: 'localhost:3000'
 });
-
-dashboard({
-  port: 3000,
-  mongoUrl,
-  urls: ['ws://localhost:3001']
-})
 
 let inter = setInterval(function () {
   if (t.isConnected()) {
