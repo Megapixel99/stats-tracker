@@ -45,7 +45,7 @@
                   <div class="row">
                     <div class="col">
                       <h5 class="card-title text-uppercase text-muted mb-0">Bytes Sent to Third Parties</h5>
-                      <span class="h2 font-weight-bold mb-0"><%= formatBytes(bytes.sent) %></span>
+                      <span id="bytesSent" class="h2 font-weight-bold mb-0"><%= bytes.sent %></span>
                     </div>
                     <div class="col-auto">
                       <div class="icon icon-shape bg-danger text-white rounded-circle shadow">
@@ -62,7 +62,7 @@
                   <div class="row">
                     <div class="col">
                       <h5 class="card-title text-uppercase text-muted mb-0">Bytes Received from Third Parties</h5>
-                      <span class="h2 font-weight-bold mb-0"><%= formatBytes(bytes.received) %></span>
+                      <span id="bytesReceived" class="h2 font-weight-bold mb-0"><%= bytes.received %></span>
                     </div>
                     <div class="col-auto">
                       <div class="icon icon-shape bg-warning text-white rounded-circle shadow">
@@ -79,7 +79,7 @@
                   <div class="row">
                     <div class="col">
                       <h5 class="card-title text-uppercase text-muted mb-0">Database Rows Written</h5>
-                      <span class="h2 font-weight-bold mb-0"><%= database.written %> Rows</span>
+                      <span id="dbWritten" class="h2 font-weight-bold mb-0"><%= database.written %> Rows</span>
                     </div>
                     <div class="col-auto">
                       <div class="icon icon-shape bg-yellow text-white rounded-circle shadow">
@@ -96,7 +96,7 @@
                   <div class="row">
                     <div class="col">
                       <h5 class="card-title text-uppercase text-muted mb-0">Database Rows Read</h5>
-                      <span class="h2 font-weight-bold mb-0"><%= database.read %> Rows</span>
+                      <span id="dbRead" class="h2 font-weight-bold mb-0"><%= database.read %> Rows</span>
                     </div>
                     <div class="col-auto">
                       <div class="icon icon-shape bg-info text-white rounded-circle shadow">
@@ -113,7 +113,7 @@
                   <div class="row">
                     <div class="col">
                       <h5 class="card-title text-uppercase text-muted mb-0">Number of Times Utilized</h5>
-                      <span class="h2 font-weight-bold mb-0"><%= utilized %></span>
+                      <span id="utilized" class="h2 font-weight-bold mb-0"><%= utilized %></span>
                     </div>
                     <div class="col-auto">
                       <div class="icon icon-shape bg-danger text-white rounded-circle shadow">
@@ -163,14 +163,14 @@
                     <th scope="col">Last Ran</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="table-data">
                   <% jobs.forEach(function(job) { %>
                     <tr>
                       <th scope="row">
                         <%= job.name %>
                       </th>
                       <td>
-                        <i class="fas <% if(job.lastRanTime > job.averageTime) { %> fa-arrow-up text-danger <% } else if(job.lastRanTime < job.averageTime) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= formatSeconds(job.lastRanTime) %>
+                        <i class="fas <% if(job.lastRanTime > job.averageTime) { %> fa-arrow-up text-danger <% } else if(job.lastRanTime < job.averageTime) { %> fa-arrow-down text-success <% } %> mr-3"></i> <%= job.formatedLastRanTime %>
                       </td>
                       <td>
                         <%= job.lastRan %>
@@ -185,4 +185,32 @@
       </div>
     </div>
   </div>
+  <script type="text/javascript">
+    setInterval(() => {
+      fetch(`${window.location.pathname}/jobs`)
+      .then((resp) => resp.json())
+      .then((data) => {
+        document.getElementById('bytesSent').innerHTML = data.bytes.sent;
+        document.getElementById('bytesReceived').innerHTML = data.bytes.received;
+        document.getElementById('dbWritten').innerHTML = `${data.database.written} Rows`;
+        document.getElementById('dbRead').innerHTML = `${data.database.read} Rows`;
+        document.getElementById('utilized').innerHTML = data.utilized;
+        document.getElementById('table-data').innerHTML = data.jobs.map((server) => {
+          return jobs.map(function(job) {
+            return `<tr>
+              <th scope="row">
+                ${job.name}
+              </th>
+              <td>
+                <i class="fas ${job.lastRanTime > job.averageTime ? 'fa-arrow-up text-danger' : 'fa-arrow-down text-success' } mr-3"></i> ${job.formatedLastRanTime}
+              </td>
+              <td>
+                ${job.lastRan}
+              </td>
+            </tr>`
+          }).join('');
+        });
+      })
+    }, 1000);
+  </script>
 </body>
