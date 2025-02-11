@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const serverSchema = mongoose.Schema({
   server: String,
   pod: String,
-  active: Boolean,
+  active: { type: Boolean, default: false },
   usage: [{
     date: Date,
     cpuUsage: Number,
