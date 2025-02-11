@@ -66,12 +66,12 @@ module.exports = {
     return {
       serverStats,
       database: {
-        read: stats.map((e) => e.databaseRows.read).reduce((a, b) => a + b, 0),
-        written: stats.map((e) => e.databaseRows.written).reduce((a, b) => a + b, 0),
+        read: stats.length !== 0 ? stats.map((e) => e.databaseRows.read).reduce((a, b) => a + b, 0) : 0,
+        written: stats.length !== 0 ? stats.map((e) => e.databaseRows.written).reduce((a, b) => a + b, 0) : 0,
       },
       bytes: {
-        sent: formatBytes(stats.map((e) => e.bytes.sent).reduce((a, b) => a + b, 0)),
-        received: formatBytes(stats.map((e) => e.bytes.received).reduce((a, b) => a + b, 0)),
+        sent: stats.length !== 0 ? formatBytes(stats.map((e) => e.bytes.sent).reduce((a, b) => a + b, 0)) : '0 Bytes',
+        received: stats.length !== 0 ? formatBytes(stats.map((e) => e.bytes.received).reduce((a, b) => a + b, 0)) : '0 Bytes',
       },
     };
   },
