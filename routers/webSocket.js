@@ -34,6 +34,7 @@ class WS {
           if (!server) {
             p.push(new models.server({
               ...conditions,
+              active: true,
               usage: [{
                 date: new Date(),
                 cpuUsage: 0,
@@ -60,20 +61,12 @@ class WS {
             .save());
           }
           await Promise.all(p);
-          models.server.findOneAndUpdate({
-            server: this.name
-          }, {
-            $set: {
-              active: true,
-            }
-          }).exec();
           break;
         case 'memory':
           if (conditions) {
             models.server.findOneAndUpdate(conditions, {
              $set: {
                uptime: jsonData.elapsed / 1000,
-               active: true,
              },
              $push: {
                usage: {
@@ -150,7 +143,10 @@ class WS {
     });
 
     ws.on('close', () => {
-      models.server.findOneAndUpdate(conditions, {
+      models.server.findOneAndUpdate({
+        server: this.name,
+        pod: this.pod,
+      }, {
        $set: {
          active: false,
        },

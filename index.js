@@ -37,6 +37,13 @@ module.exports = {
         ...config,
       }));
 
+      process.on('exit', () => {
+        ws.send(JSON.stringify({
+          type: 'app.close',
+          ...config,
+        }));
+      });
+
       nodeCleanup(function (exitCode, signal) {
         ws.send(JSON.stringify({
           type: 'app.close',
@@ -74,6 +81,15 @@ module.exports = {
         }));
       }
     }, 1000);
+
+    setInterval(function inter() {
+      const conditions = { active: true, $expr: { $lte: [{ $last: "$usage.date" }, DateTime.now().minus({ minutes: 1 }).toJSDate()] } };
+      return models.server.updateMany(conditions, {
+        $set: {
+          active: false,
+        }
+      }).exec();
+    }, 60000);
 
     return {
       isConnected,
