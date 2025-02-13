@@ -1,3 +1,4 @@
+const { DateTime } = require('luxon');
 const models = require('../database/models.js');
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -20,6 +21,32 @@ const formatSeconds = (seconds, decimals = 3) => {
   return `${parseFloat((seconds / 1000).toFixed(dm))} Seconds`
 };
 
+const formatNum = (num) => {
+  nfObject = new Intl.NumberFormat('en-US');
+  return nfObject.format(num);
+}
+
+const parseKeyStr = (obj, str) => {
+  if (str.split('.').length > 1) {
+    let k = str.split('.')[0];
+    return parseKeyStr(obj[k], str.split('.').slice(1).join('.'));
+  }
+  return obj[str];
+}
+
+const reduceValFromArr = (arr, val) => {
+  if (arr.length === 0) {
+    return 0;
+  }
+  return arr.map((e) => parseKeyStr(e, val)).reduce((a, b) => a + b, 0);
+}
+
+const filterStatsByStartOf = (stats, str) => {
+  let duration = {};
+  duration[str] = 1;
+  return stats.filter((e) => DateTime.fromJSDate(e.date) >= DateTime.now().minus(duration));
+}
+
 module.exports = {
   formatBytes,
   formatSeconds,
@@ -39,8 +66,8 @@ module.exports = {
       }
     });
     let serverStats = servers.map((e) => {
-      let s = stats.find((i) => i.server === e.name);
-      if (s) {
+      let statArr = stats.filter((i) => i.server === e.name);
+      if (statArr) {
         return {
           name: e.name,
           pods: e.pods.map((o) => {
@@ -56,8 +83,8 @@ module.exports = {
               avgMemoryUsage: m.length >= 1 ? m.reduce((a, b) => a + b) / m.length : 0,
             };
           }),
-          bytesSent: formatBytes(s.bytes.sent),
-          bytesReceived: formatBytes(s.bytes.received),
+          bytesSent: formatBytes(reduceValFromArr(statArr, 'bytes.sent')),
+          bytesReceived: formatBytes(reduceValFromArr(statArr, 'bytes.received')),
         };
       }
       return null;
@@ -66,23 +93,43 @@ module.exports = {
     return {
       serverStats,
       database: {
-        read: stats.length !== 0 ? stats.map((e) => e.databaseRows.read).reduce((a, b) => a + b, 0) : 0,
-        written: stats.length !== 0 ? stats.map((e) => e.databaseRows.written).reduce((a, b) => a + b, 0) : 0,
+        read: {
+          day: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'databaseRows.read')),
+          week: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'databaseRows.read')),
+          month: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'databaseRows.read')),
+          year: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'databaseRows.read')),
+        },
+        written: {
+          day: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'databaseRows.written')),
+          week: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'databaseRows.written')),
+          month: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'databaseRows.written')),
+          year: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'databaseRows.written')),
+        },
+      },
+      utilized: {
+        day: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'jobs.length')),
+        week: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'jobs.length')),
+        month: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'jobs.length')),
+        year: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'jobs.length')),
       },
       bytes: {
-        sent: stats.length !== 0 ? formatBytes(stats.map((e) => e.bytes.sent).reduce((a, b) => a + b, 0)) : '0 Bytes',
-        received: stats.length !== 0 ? formatBytes(stats.map((e) => e.bytes.received).reduce((a, b) => a + b, 0)) : '0 Bytes',
+        synced: {
+          day: formatBytes(reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'bytes.received') + reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'bytes.sent')),
+          week: formatBytes(reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'bytes.received') + reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'bytes.sent')),
+          month: formatBytes(reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'bytes.received') + reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'bytes.sent')),
+          year: formatBytes(reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'bytes.received') + reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'bytes.sent')),
+        },
       },
     };
   },
   serverJobs: async (serverName) => {
     const server = (await models.server.findOne({ server: serverName, active: true }).lean());
-    const stats = (await models.stats.findOne({ server: serverName }).lean());
+    const stats = (await models.stats.find({ server: serverName }).lean());
     if (!(server && stats)) {
       return false;
     }
     let jobs = [];
-    stats.jobs.forEach((e) => {
+    stats.map((s) => s.jobs).flat().forEach((e) => {
       let j = jobs.find((i) => i.name === e.name);
       let isLastRun = (lastRan) => new Date(lastRan).getMilliseconds() > new Date(e.start).getMilliseconds();
       if (j) {
@@ -103,11 +150,34 @@ module.exports = {
     });
     return {
       name: serverName,
-      utilized: stats.jobs.length,
-      database: stats.databaseRows,
+      utilized: stats.map((s) => s.jobs).length,
+      database: {
+        read: {
+          day: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'databaseRows.read')),
+          week: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'databaseRows.read')),
+          month: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'databaseRows.read')),
+          year: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'databaseRows.read')),
+        },
+        written: {
+          day: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'databaseRows.written')),
+          week: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'databaseRows.written')),
+          month: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'databaseRows.written')),
+          year: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'databaseRows.written')),
+        },
+      },
+      utilized: {
+        day: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'jobs.length')),
+        week: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'jobs.length')),
+        month: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'jobs.length')),
+        year: formatNum(reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'jobs.length')),
+      },
       bytes: {
-        sent: formatBytes(stats.bytes.sent),
-        received: formatBytes(stats.bytes.received),
+        synced: {
+          day: formatBytes(reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'bytes.received') + reduceValFromArr(filterStatsByStartOf(stats, 'days'), 'bytes.sent')),
+          week: formatBytes(reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'bytes.received') + reduceValFromArr(filterStatsByStartOf(stats, 'weeks'), 'bytes.sent')),
+          month: formatBytes(reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'bytes.received') + reduceValFromArr(filterStatsByStartOf(stats, 'months'), 'bytes.sent')),
+          year: formatBytes(reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'bytes.received') + reduceValFromArr(filterStatsByStartOf(stats, 'years'), 'bytes.sent')),
+        },
       },
       jobs: jobs.map((e) => ({
         ...e,

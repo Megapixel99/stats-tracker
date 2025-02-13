@@ -33,101 +33,7 @@
         <a class="h4 mb-0 text-white text-uppercase d-none d-lg-inline-block" href="/">Back to Dashboard</a>
       </div>
     </nav>
-    <!-- Header -->
-    <div class="header bg-gradient-primary pb-8 pt-5 pt-md-8">
-      <div class="container-fluid">
-        <div class="header-body">
-          <!-- Card stats -->
-          <div class="row">
-            <div class="col-xl-3 col-lg-6 stats">
-              <div class="card card-stats mb-4 mb-xl-0">
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col">
-                      <h5 class="card-title text-uppercase text-muted mb-0">Bytes Sent to Third Parties</h5>
-                      <span id="bytesSent" class="h2 font-weight-bold mb-0"><%= bytes.sent %></span>
-                    </div>
-                    <div class="col-auto">
-                      <div class="icon icon-shape bg-danger text-white rounded-circle shadow">
-                        <i class="fas fa-chart-bar"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-xl-3 col-lg-6 stats">
-              <div class="card card-stats mb-4 mb-xl-0">
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col">
-                      <h5 class="card-title text-uppercase text-muted mb-0">Bytes Received from Third Parties</h5>
-                      <span id="bytesReceived" class="h2 font-weight-bold mb-0"><%= bytes.received %></span>
-                    </div>
-                    <div class="col-auto">
-                      <div class="icon icon-shape bg-warning text-white rounded-circle shadow">
-                        <i class="fas fa-chart-pie"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-xl-3 col-lg-6 stats">
-              <div class="card card-stats mb-4 mb-xl-0">
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col">
-                      <h5 class="card-title text-uppercase text-muted mb-0">Database Rows Written</h5>
-                      <span id="dbWritten" class="h2 font-weight-bold mb-0"><%= database.written %> Rows</span>
-                    </div>
-                    <div class="col-auto">
-                      <div class="icon icon-shape bg-yellow text-white rounded-circle shadow">
-                        <i class="fas fa-users"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-xl-3 col-lg-6 stats">
-              <div class="card card-stats mb-4 mb-xl-0">
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col">
-                      <h5 class="card-title text-uppercase text-muted mb-0">Database Rows Read</h5>
-                      <span id="dbRead" class="h2 font-weight-bold mb-0"><%= database.read %> Rows</span>
-                    </div>
-                    <div class="col-auto">
-                      <div class="icon icon-shape bg-info text-white rounded-circle shadow">
-                        <i class="fas fa-percent"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-xl-3 col-lg-6 stats">
-              <div class="card card-stats mb-4 mb-xl-0">
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col">
-                      <h5 class="card-title text-uppercase text-muted mb-0">Number of Times Utilized</h5>
-                      <span id="utilized" class="h2 font-weight-bold mb-0"><%= utilized %></span>
-                    </div>
-                    <div class="col-auto">
-                      <div class="icon icon-shape bg-danger text-white rounded-circle shadow">
-                        <i class="fas fa-chart-bar"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <%- include('../partials/header.ejs') %>)
     <!-- Page content -->
     <div class="container-fluid mt--7">
       <div class="row mt-5">
@@ -190,26 +96,35 @@
       fetch(`${window.location.pathname}/jobs`)
       .then((resp) => resp.json())
       .then((data) => {
-        document.getElementById('bytesSent').innerHTML = data.bytes.sent;
-        document.getElementById('bytesReceived').innerHTML = data.bytes.received;
-        document.getElementById('dbWritten').innerHTML = `${data.database.written} Rows`;
-        document.getElementById('dbRead').innerHTML = `${data.database.read} Rows`;
-        document.getElementById('utilized').innerHTML = data.utilized;
-        document.getElementById('table-data').innerHTML = data.jobs.map((server) => {
-          return jobs.map(function(job) {
-            return `<tr>
-              <th scope="row">
-                ${job.name}
-              </th>
-              <td>
-                <i class="fas ${job.lastRanTime > job.averageTime ? 'fa-arrow-up text-danger' : 'fa-arrow-down text-success' } mr-3"></i> ${job.formatedLastRanTime}
-              </td>
-              <td>
-                ${job.lastRan}
-              </td>
-            </tr>`
-          }).join('');
-        });
+        document.getElementById('bytesSyncedDay').innerHTML = `${data.bytes.synced.day}`;
+        document.getElementById('bytesSyncedWeek').innerHTML = `${data.bytes.synced.week}`;
+        document.getElementById('bytesSyncedMonth').innerHTML = `${data.bytes.synced.month}`;
+        document.getElementById('bytesSyncedYear').innerHTML = `${data.bytes.synced.year}`;
+        document.getElementById('utilizationDay').innerHTML = `${data.utilized.day}`;
+        document.getElementById('utilizationWeek').innerHTML = `${data.utilized.week}`;
+        document.getElementById('utilizationMonth').innerHTML = `${data.utilized.month}`;
+        document.getElementById('utilizationYear').innerHTML = `${data.utilized.year}`;
+        document.getElementById('dbReadDay').innerHTML = `${data.database.read.day} Records`;
+        document.getElementById('dbReadWeek').innerHTML = `${data.database.read.week} Records`;
+        document.getElementById('dbReadMonth').innerHTML = `${data.database.read.month} Records`;
+        document.getElementById('dbReadYear').innerHTML = `${data.database.read.year} Records`;
+        document.getElementById('dbWrittenDay').innerHTML = `${data.database.written.day} Records`;
+        document.getElementById('dbWrittenWeek').innerHTML = `${data.database.written.week} Records`;
+        document.getElementById('dbWrittenMonth').innerHTML = `${data.database.written.month} Records`;
+        document.getElementById('dbWrittenYear').innerHTML = `${data.database.written.year} Records`;
+        document.getElementById('table-data').innerHTML = data.jobs.map((job) => {
+          return `<tr>
+            <th scope="row">
+              ${job.name}
+            </th>
+            <td>
+              <i class="fas ${job.lastRanTime > job.averageTime ? 'fa-arrow-up text-danger' : 'fa-arrow-down text-success' } mr-3"></i> ${job.formatedLastRanTime}
+            </td>
+            <td>
+              ${job.lastRan}
+            </td>
+          </tr>`
+        }).join('');
       })
     }, 1000);
   </script>

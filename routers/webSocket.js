@@ -1,5 +1,6 @@
 const models = require('../database/models.js');
 const WebSocket = require('ws');
+const { DateTime } = require('luxon');
 
 class WS {
   constructor(ws, usageLength = 100, logger = console) {
@@ -23,10 +24,11 @@ class WS {
         server: this.name,
         pod: this.pod,
       };
+      let dayStart = DateTime.now().startOf('day').toJSDate();
       switch (jsonData.type) {
         case 'create':
           const server = (await models.server.findOne(conditions).lean());
-          const stats = (await models.stats.findOne({ server: jsonData.name }).lean());
+          const stats = (await models.stats.findOne({ server: jsonData.name, date: dayStart }).lean());
           let p = [];
           this.name = jsonData.name;
           if (!server) {
@@ -44,7 +46,7 @@ class WS {
           if (!stats) {
             p.push(new models.stats({
               ...conditions,
-              date: new Date(),
+              date: dayStart,
               bytes: {
                 sent: 0,
                 received: 0,
@@ -88,7 +90,7 @@ class WS {
           break;
         case 'bytes.received':
           if (this.name) {
-            models.stats.findOneAndUpdate({ server: this.name }, {
+            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, {
               $inc: {
                 'bytes.received': jsonData.bytes,
               }
@@ -97,7 +99,7 @@ class WS {
           break;
         case 'bytes.sent':
           if (this.name) {
-            models.stats.findOneAndUpdate({ server: this.name }, {
+            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, {
               $inc: {
                 'bytes.sent': jsonData.bytes,
               }
@@ -106,7 +108,7 @@ class WS {
           break;
         case 'database.written':
           if (!Number.isNaN(jsonData.rows) && conditions) {
-            models.stats.findOneAndUpdate({ server: this.name }, {
+            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, {
               $inc: {
                 'databaseRows.written': jsonData.rows,
               }
@@ -115,7 +117,7 @@ class WS {
           break;
         case 'database.read':
           if (!Number.isNaN(jsonData.rows) && conditions) {
-            models.stats.findOneAndUpdate({ server: this.name }, {
+            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, {
               $inc: {
                 'databaseRows.read': jsonData.rows,
               }
@@ -132,7 +134,7 @@ class WS {
                 duration: jsonData.duration,
               }
             };
-            models.stats.findOneAndUpdate({ server: this.name }, update).exec();
+            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, update).exec();
           }
           break;
         case 'app.close':
