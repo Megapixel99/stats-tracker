@@ -83,15 +83,6 @@ module.exports = {
       }
     }, 1000);
 
-    setInterval(function inter() {
-      const conditions = { active: true, $expr: { $lte: [{ $last: "$usage.date" }, DateTime.now().minus({ minutes: 1 }).toJSDate()] } };
-      return models.server.updateMany(conditions, {
-        $set: {
-          active: false,
-        }
-      }).exec();
-    }, 60000);
-
     return {
       isConnected,
       bytes: {
@@ -172,6 +163,15 @@ module.exports = {
     }
 
     dbConn.connect(config.mongoUrl, config.logger);
+
+    setInterval(function inter() {
+      const conditions = { active: true, $expr: { $lte: [{ $last: "$usage.date" }, DateTime.now().minus({ minutes: 1 }).toJSDate()] } };
+      return models.server.updateMany(conditions, {
+        $set: {
+          active: false,
+        }
+      }).exec();
+    }, 60000);
 
     const app = express();
 
