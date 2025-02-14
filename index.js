@@ -14,74 +14,73 @@ const { DateTime } = require('luxon');
 module.exports = {
   tracker: (config) => {
 
-    let ws;
-    if (config.url.startsWith('ws://')) {
-      ws = new WebSocket(config.url);
-    } else {
-      ws = new WebSocket(`ws://${config.url}`);
-    }
-
     if (!config.logger) {
       config.logger = console;
     }
 
-    let interval = null;
+    let ws;
 
-    const isConnected = () =>  ws?._readyState === WebSocket.OPEN;
+    const isConnected = () => ws?._readyState === WebSocket.OPEN;
 
-    ws.on('error', config.logger.error);
-
-    ws.on('open', (conn) => {
-
-      ws.send(JSON.stringify({
-        type: 'connect',
-        ...config,
-      }));
-
-      process.on('exit', () => {
-        ws.send(JSON.stringify({
-          type: 'app.close',
-          ...config,
-        }));
-      });
-
-      nodeCleanup(function (exitCode, signal) {
-        ws.send(JSON.stringify({
-          type: 'app.close',
-          ...config,
-        }));
-        setTimeout(() => process.exit(0), 5000);
-        return false;
-      });
-
-      interval = setInterval(function inter() {
-        pidusage(process.pid).then((stats) => {
-          ws.send(JSON.stringify({
-            type: 'memory',
-            ...config,
-            ...stats,
-          }));
-        })
-      }, 10000);
-    });
-
-    ws.on('close', function close() {
-      ws = null;
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
+    function connect() {
+      if (config.url.startsWith('ws://')) {
+        ws = new WebSocket(config.url);
+      } else {
+        ws = new WebSocket(`ws://${config.url}`);
       }
-    });
 
-    createInterval = setInterval(function inter() {
-      if (isConnected()) {
-        clearInterval(createInterval);
+      let interval = null;
+
+      ws.on('error', (err) => {
+        if (!err.code === 'ECONNREFUSED') {
+          config.logger.error(err);
+        }
+      });
+
+      ws.on('open', (conn) => {
+        console.log(isConnected());
+
         ws.send(JSON.stringify({
           type: 'create',
           ...config,
         }));
+
+        ws.send(JSON.stringify({
+          type: 'connect',
+          ...config,
+        }));
+
+        interval = setInterval(function inter() {
+          pidusage(process.pid).then((stats) => {
+            ws.send(JSON.stringify({
+              type: 'memory',
+              ...config,
+              ...stats,
+            }));
+          })
+        }, 10000);
+      });
+
+      ws.on('close', () => {
+        ws = null
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+        setTimeout(connect, 1000)
+      });
+    }
+
+    connect();
+
+    process.on('exit', () => {
+      if (isConnected()) {
+        ws.send(JSON.stringify({
+          type: 'app.close',
+          ...config,
+        }));
       }
-    }, 1000);
+    });
 
     return {
       isConnected,
