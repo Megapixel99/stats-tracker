@@ -8,7 +8,6 @@ class WS {
     this.connected = true;
     this.name;
     this.pod;
-
     return this.handleConnection(ws, usageLength);
   }
 
@@ -16,7 +15,11 @@ class WS {
     this.failedAttempts = 0;
     ws.on('error', (err) => this.errFunc(err, logger));
 
-    ws.on('message', async (data) => {
+    ws.on('message', async (_data) => {
+      let data = _data;
+      if (!(data instanceof String)) {
+        data = _data.toString();
+      }
       let jsonData = JSON.parse(data);
       this.name = jsonData.name;
       this.pod = (jsonData.pod || jsonData.name);
@@ -25,30 +28,11 @@ class WS {
         pod: this.pod,
       };
       let dayStart = DateTime.now().startOf('day').toJSDate();
-      if (jsonData.type === 'create') {
-        const server = (await models.server.findOne(conditions).lean());
-        const stats = (await models.stats.findOne({ server: jsonData.name, date: dayStart }).lean());
-        let p = [];
-        this.name = jsonData.name;
-        if (!server) {
-          p.push(new models.server({ ...conditions, active: true }).save());
-        } else {
-          let update = {
-            $set: {
-              active: true,
-            }
-          };
-          p.push(models.server.findOneAndUpdate(conditions, update).exec());
-        }
-        if (!stats) {
-          p.push(new models.stats({ ...conditions, date: dayStart }).save());
-        }
-        await Promise.all(p);
-      }
-      else if (jsonData.type === 'memory') {
+      if (jsonData.type === 'memory') {
         await models.server.findOneAndUpdate(conditions, {
          $set: {
            uptime: jsonData.elapsed / 1000,
+           active: true,
          },
          $push: {
            usage: {
@@ -60,7 +44,7 @@ class WS {
             $slice: Math.abs(usageLength) * -1
           }
          }
-       }).exec();
+       }, { upsert: true }).exec();
      } else if (jsonData.type === 'app.close') {
        await models.server.findOneAndUpdate(conditions, {
          $set: {

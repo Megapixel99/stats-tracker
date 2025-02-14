@@ -22,14 +22,15 @@ module.exports = {
 
     const isConnected = () => ws?._readyState === WebSocket.OPEN;
 
+    let memInterval = null;
+    let connectInterval = null;
+
     function connect() {
       if (config.url.startsWith('ws://')) {
         ws = new WebSocket(config.url);
       } else {
         ws = new WebSocket(`ws://${config.url}`);
       }
-
-      let interval = null;
 
       ws.on('error', (err) => {
         if (!err.code === 'ECONNREFUSED') {
@@ -38,40 +39,34 @@ module.exports = {
       });
 
       ws.on('open', (conn) => {
-        console.log(isConnected());
+        if (isConnected()) {
+          clearInterval(connectInterval);
 
-        ws.send(JSON.stringify({
-          type: 'create',
-          ...config,
-        }));
-
-        ws.send(JSON.stringify({
-          type: 'connect',
-          ...config,
-        }));
-
-        interval = setInterval(function inter() {
-          pidusage(process.pid).then((stats) => {
+          let memCheck = () => pidusage(process.pid).then((stats) => {
             ws.send(JSON.stringify({
               type: 'memory',
               ...config,
               ...stats,
             }));
           })
-        }, 10000);
-      });
 
-      ws.on('close', () => {
-        ws = null
-        if (interval) {
-          clearInterval(interval);
-          interval = null;
+          memInterval = setInterval(memCheck, 10000);
+
+          memCheck();
+
+          ws.on('close', () => {
+            ws = null
+            if (memInterval) {
+              clearInterval(memInterval);
+              memInterval = null;
+            }
+            connectInterval = setInterval(connect, 1000)
+          });
         }
-        setTimeout(connect, 1000)
       });
     }
 
-    connect();
+    connectInterval = setInterval(connect, 1000)
 
     process.on('exit', () => {
       if (isConnected()) {
@@ -194,19 +189,8 @@ module.exports = {
     let wss = new WebSocketServer({ server: app.listen((config.port || 3000)) });
 
     wss.on('connection', (ws) => {
-
       ws.on('error', config.logger.error);
-
-      ws.on('message', function message(data) {
-        let jsonData = JSON.parse(data);
-        if (jsonData.type === 'connect' && !listening.some((e) => e.name === jsonData.name && e.pod === (jsonData.pod || jsonData.name))) {
-          listening.push({
-            name: jsonData.name,
-            pod: (jsonData.pod || jsonData.name),
-          });
-          new WS(ws, config.usageLength, config.logger);
-        }
-      });
+      new WS(ws, config.usageLength, config.logger);
     });
 
     config.logger.log('Dashboard is ready');
