@@ -14,8 +14,6 @@ The `config` can be used to pass the port of the web socket server and the name 
 const { tracker } = require('stats-tracker');
 
 let t = tracker({
-  server: server, // configure the tracker to extend from your http/https server
-  port: 3001, // only needed if you do not pass a server
   name: 'test',
   pod: 'test-1', // useful if running multiple instances of the same application, defaults to the name, in this case `test`
   logger: console, // defaults to console if nothing is passed
@@ -72,9 +70,9 @@ This function will stop a job and data about the job will be sent to the dashboa
 const { tracker } = require('stats-tracker');
 
 let t = tracker({
-  port: 3001,
   name: 'test',
   pod: 'test-1',
+  logger: console, // defaults to console if nothing is passed
 });
 
 let job1 = t.job.start('jobName');
@@ -98,7 +96,6 @@ const { dashboard } = require('stats-tracker');
 dashboard({
   port: 3000,
   mongoUrl: 'mongodb://yourUrl',
-  urls: ['ws://firstTracker', 'ws://secondTracker'],
   usageLength: 100, // determines how much CPU usage info to save in the database (for the average CPU usage to be determined), defaults to 100 and is updated every 5 seconds
   logger: console, // defaults to console if nothing is passed
 });

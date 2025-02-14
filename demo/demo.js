@@ -7,7 +7,6 @@ dashboard({
 })
 
 let t = tracker({
-  port: 3001,
   name: 'test',
   pod: 'test-1',
   url: 'localhost:3000'
