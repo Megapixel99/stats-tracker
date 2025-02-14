@@ -18,6 +18,7 @@ class WS {
 
     ws.on('message', async (data) => {
       let jsonData = JSON.parse(data);
+      console.log(jsonData.type);
       this.name = jsonData.name;
       this.pod = (jsonData.pod || jsonData.name);
       let conditions = {
