@@ -25,121 +25,105 @@ class WS {
         pod: this.pod,
       };
       let dayStart = DateTime.now().startOf('day').toJSDate();
-      switch (jsonData.type) {
-        case 'create':
-          const server = (await models.server.findOne(conditions).lean());
-          const stats = (await models.stats.findOne({ server: jsonData.name, date: dayStart }).lean());
-          let p = [];
-          this.name = jsonData.name;
-          if (!server) {
-            p.push(new models.server({
-              ...conditions,
+      if (jsonData.type === 'create') {
+        const server = (await models.server.findOne(conditions).lean());
+        const stats = (await models.stats.findOne({ server: jsonData.name, date: dayStart }).lean());
+        let p = [];
+        this.name = jsonData.name;
+        if (!server) {
+          p.push(new models.server({ ...conditions, active: true }).save());
+        } else {
+          let update = {
+            $set: {
               active: true,
-              usage: [{
-                date: new Date(),
-                cpuUsage: 0,
-                memoryUsage: 0,
-              }],
-              uptime: 0,
-            })
-            .save());
+            }
+          };
+          p.push(models.server.findOneAndUpdate(conditions, update).exec());
+        }
+        if (!stats) {
+          p.push(new models.stats({ ...conditions, date: dayStart }).save());
+        }
+        await Promise.all(p);
+      }
+      else if (jsonData.type === 'memory') {
+        await models.server.findOneAndUpdate(conditions, {
+         $set: {
+           uptime: jsonData.elapsed / 1000,
+         },
+         $push: {
+           usage: {
+             $each: [{
+               date: new Date(),
+               cpuUsage: jsonData.cpu,
+               memoryUsage: jsonData.memory,
+             }],
+            $slice: Math.abs(usageLength) * -1
           }
-          if (!stats) {
-            p.push(new models.stats({
-              ...conditions,
-              date: dayStart,
-              bytes: {
-                sent: 0,
-                received: 0,
-              },
-              databaseRows: {
-                read: 0,
-                written: 0,
-              },
-              jobs: [],
-            })
-            .save());
+         }
+       }).exec();
+     } else if (jsonData.type === 'app.close') {
+       await models.server.findOneAndUpdate(conditions, {
+         $set: {
+           active: false,
+         }
+       }).exec();
+     } else {
+        const searchCond = { server: this.name, date: dayStart };
+        const stats = await models.stats.find(searchCond).lean();
+
+        if (stats.length === 0) {
+          await new models.stats(conditions).save();
+        } else if (stats.length > 1) {
+          let toBeDeleted = stats
+            .filter((s) => s.bytes.sent === 0 && s.bytes.received === 0 && s.databaseRows.read === 0 && s.databaseRows.written === 0)
+            .map((s) => ({ _id: s._id }));
+          if (toBeDeleted.length === stats.length) {
+            toBeDeleted = toBeDeleted.slice(1);
           }
-          await Promise.all(p);
-          break;
-        case 'memory':
-          if (conditions) {
-            models.server.findOneAndUpdate(conditions, {
-             $set: {
-               uptime: jsonData.elapsed / 1000,
-             },
-             $push: {
-               usage: {
-                 $each: [{
-                   date: new Date(),
-                   cpuUsage: jsonData.cpu,
-                   memoryUsage: jsonData.memory,
-                 }],
-                $slice: Math.abs(usageLength) * -1
-              }
-             }
-           }).exec();
-          }
-          break;
-        case 'bytes.received':
-          if (this.name) {
-            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, {
-              $inc: {
-                'bytes.received': jsonData.bytes,
-              }
-            }).exec();
-          }
-          break;
-        case 'bytes.sent':
-          if (this.name) {
-            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, {
-              $inc: {
-                'bytes.sent': jsonData.bytes,
-              }
-            }).exec();
-          }
-          break;
-        case 'database.written':
-          if (!Number.isNaN(jsonData.rows) && conditions) {
-            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, {
-              $inc: {
-                'databaseRows.written': jsonData.rows,
-              }
-            }).exec();
-          }
-          break;
-        case 'database.read':
-          if (!Number.isNaN(jsonData.rows) && conditions) {
-            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, {
-              $inc: {
-                'databaseRows.read': jsonData.rows,
-              }
-            }).exec();
-          }
-          break;
-        case 'job':
-          if (this.name) {
-            let update = {};
-            update.$push = {
+          await Promise.all(toBeDeleted.map((d) => models.stats.deleteOne(d)));
+        }
+
+        if (jsonData.type === 'bytes.received') {
+          let update = {
+            $inc: {
+              'bytes.received': jsonData.bytes,
+            }
+          };
+          await models.stats.findOneAndUpdate(searchCond, update).exec()
+        } else if (jsonData.type === 'bytes.sent') {
+          let update = {
+            $inc: {
+              'bytes.sent': jsonData.bytes,
+            }
+          };
+          await models.stats.findOneAndUpdate(searchCond, update).exec();
+        } else if (jsonData.type === 'database.written') {
+          let update = {
+            $inc: {
+              'databaseRows.written': jsonData.rows,
+            }
+          };
+          await models.stats.findOneAndUpdate(searchCond, update).exec();
+        } else if (jsonData.type === 'database.read') {
+          let update = {
+            $inc: {
+              'databaseRows.read': jsonData.rows,
+            }
+          };
+          await models.stats.findOneAndUpdate(searchCond, update).exec();
+        } else if (jsonData.type === 'job') {
+          let update = {
+            $push: {
               jobs: {
                 name: jsonData.jobName,
                 start: jsonData.start,
                 duration: jsonData.duration,
               }
-            };
-            models.stats.findOneAndUpdate({ server: this.name, date: dayStart }, update).exec();
-          }
-          break;
-        case 'app.close':
-          if (conditions) {
-            models.server.findOneAndUpdate(conditions, {
-              $set: {
-                active: false,
-              }
-            }).exec();
-          }
-          break;
-      }
+            }
+          };
+          await models.stats.findOneAndUpdate(searchCond, update).exec();
+        }
+     }
     });
 
     ws.on('close', () => {
