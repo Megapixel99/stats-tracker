@@ -1,32 +1,33 @@
 const mongoose = require('mongoose');
+const { DateTime } = require('luxon');
 
 const serverSchema = mongoose.Schema({
   server: String,
   pod: String,
   active: { type: Boolean, default: false },
   usage: [{
-    date: Date,
-    cpuUsage: Number,
-    memoryUsage: Number,
+    date: { type: Date, default: DateTime.now().toJSDate() },
+    cpuUsage: { type: Number, default: 0 },
+    memoryUsage: { type: Number, default: 0 },
   }],
-  uptime: Number,
+  uptime: { type: Number, default: 0 },
 });
 
 const statSchema = mongoose.Schema({
-  date: Date,
+  date: { type: Date, default: DateTime.now().startOf('day').toJSDate() },
   server: String,
   bytes: {
-    sent: Number,
-    received: Number,
+    sent: { type: Number, default: 0 },
+    received: { type: Number, default: 0 },
   },
   databaseRows: {
-    read: Number,
-    written: Number,
+    read: { type: Number, default: 0 },
+    written: { type: Number, default: 0 },
   },
   jobs: [{
     name: String,
-    start: Date,
-    duration: Number,
+    start: { type: Date, default: DateTime.now().toJSDate() },
+    duration: { type: Number, default: 0 },
   }]
 });
 
