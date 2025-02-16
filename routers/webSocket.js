@@ -53,11 +53,10 @@ class WS {
        }).exec();
      } else {
         const searchCond = { server: this.name, date: dayStart };
-        console.log(searchCond);
         const stats = await models.stats.find(searchCond).lean();
 
         if (stats.length === 0) {
-          await new models.stats(conditions).save();
+          await new models.stats(searchCond).save();
         } else if (stats.length > 1) {
           let toBeDeleted = stats
             .filter((s) => s.bytes.sent === 0 && s.bytes.received === 0 && s.databaseRows.read === 0 && s.databaseRows.written === 0)
