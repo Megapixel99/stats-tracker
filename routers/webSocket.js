@@ -99,9 +99,12 @@ class WS {
           let update = {
             $push: {
               jobs: {
-                name: jsonData.jobName,
-                start: jsonData.start,
-                duration: jsonData.duration,
+                $each: [{
+                  name: jsonData.jobName,
+                  start: jsonData.start,
+                  duration: jsonData.duration,
+                }],
+                $slice: Math.abs(usageLength) * -1,
               }
             }
           };
