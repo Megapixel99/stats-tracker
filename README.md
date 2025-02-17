@@ -5,11 +5,12 @@ This module exposes two functions: `dashboard` and `tracker`
 The `tracker` function can be used to relay information about the current NodeJS
 process to the dashboard (wherever the `dashboard` function is running).
 
-## tracker(config)
+## tracker
 
-The tracker takes one argument, `config`. The tracker connects to the dashboard via web sockets and exposes a web socket server which the dashboard can connect to.
+The tracker takes one argument, `config`.
 
-The `config` can be used to pass the port of the web socket server and the name of the application.
+The `config` can be used to pass the URL of the dashboard (which exposes a web socket server) and the name of the application among other things.
+
 ```javascript
 const { tracker } = require('stats-tracker');
 
@@ -17,6 +18,8 @@ let t = tracker({
   name: 'test',
   pod: 'test-1', // useful if running multiple instances of the same application, defaults to the name, in this case `test`
   logger: console, // defaults to console if nothing is passed
+  timezone: 'UTC', // defaults to 'UTC' if nothing is passed, supports the timezones in `Intl`
+  url: 'http://myDashboard', // HTTP route to to dashboard
 });
 ```
 
@@ -88,7 +91,7 @@ The `dashboard` function exposes a web-based dashboard (built using `express` an
 
 The `dashboard` function takes one argument, `config`.
 
-The `config` can be used to pass the port you want the dashboard to run on, the URL of the Mongo Database you will be using, and the url(s) or the various applications running the `tracker` function along with `usageLength` and a `logger`.
+The `config` can be used to pass the port you want the dashboard to run on, the URL of the Mongo Database you will be using along with `usageLength` and a `logger`.
 
 ```javascript
 const { dashboard } = require('stats-tracker');
@@ -103,4 +106,4 @@ dashboard({
 
 If you want to spin up the dashboard as a standalone application you can run: `npm run dashboard`
 
-### For a full (running/working) demo, please see `demo.js` in the demo folder
+### For a full (running/working) demo, please see `demo.js` in the demo folder (you will need a running mongo database for the demo)

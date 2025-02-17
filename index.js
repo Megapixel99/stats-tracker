@@ -9,13 +9,17 @@ const pidusage = require('pidusage');
 var nodeCleanup = require('node-cleanup');
 const { serialize } = require('v8')
 const models = require('./database/models.js');
-const { DateTime } = require('luxon');
+const { DateTime, Settings } = require('luxon');
 
 module.exports = {
   tracker: (config) => {
 
     if (!config.logger) {
       config.logger = console;
+    }
+
+    if (!config.timezone) {
+      Settings.defaultZoneName = 'UTC';
     }
 
     let ws;
