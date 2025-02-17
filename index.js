@@ -18,8 +18,8 @@ module.exports = {
       config.logger = console;
     }
 
-    if (!config.timezone) {
-      Settings.defaultZoneName = 'UTC';
+    if (config.timezone) {
+      Settings.defaultZoneName = config.timezone;
     }
 
     let ws;
