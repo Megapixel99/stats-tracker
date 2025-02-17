@@ -46,11 +46,7 @@ class WS {
          }
        }, { upsert: true }).exec();
      } else if (jsonData.type === 'app.close') {
-       await models.server.findOneAndUpdate(conditions, {
-         $set: {
-           active: false,
-         }
-       }).exec();
+       await models.server.deleteOne(conditions).exec();
      } else {
         const searchCond = { server: this.name, date: dayStart };
         const stats = await models.stats.find(searchCond).lean();
