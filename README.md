@@ -18,7 +18,6 @@ let t = tracker({
   name: 'test',
   pod: 'test-1', // useful if running multiple instances of the same application, defaults to the name, in this case `test`
   logger: console, // defaults to console if nothing is passed
-  timezone: 'UTC', // defaults to 'UTC' if nothing is passed, supports the timezones in `Intl`
   url: 'http://myDashboard', // HTTP route to to dashboard
 });
 ```
@@ -101,6 +100,7 @@ dashboard({
   mongoUrl: 'mongodb://yourUrl',
   usageLength: 100, // determines how much CPU usage info to save in the database (for the average CPU usage to be determined), defaults to 100 and is updated every 5 seconds
   logger: console, // defaults to console if nothing is passed
+  timezone: 'UTC', // defaults to 'UTC' if nothing is passed, supports the timezones in `Intl`
 });
 ```
 

@@ -18,10 +18,6 @@ module.exports = {
       config.logger = console;
     }
 
-    if (config.timezone) {
-      Settings.defaultZoneName = config.timezone;
-    }
-
     let ws;
 
     const isConnected = () => ws?._readyState === WebSocket.OPEN;
@@ -158,6 +154,10 @@ module.exports = {
   dashboard: (config) => {
     if (!config.logger) {
       config.logger = console;
+    }
+
+    if (config.timezone) {
+      Settings.defaultZoneName = config.timezone;
     }
 
     dbConn.connect(config.mongoUrl, config.logger);
