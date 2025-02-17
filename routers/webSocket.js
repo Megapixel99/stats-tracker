@@ -54,7 +54,6 @@ class WS {
      } else {
         const searchCond = { server: this.name, date: dayStart };
         const stats = await models.stats.find(searchCond).lean();
-        console.log(stats);
 
         if (stats.length === 0) {
           await new models.stats(searchCond).save();
