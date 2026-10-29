@@ -1,10 +1,33 @@
 {
   "name": "stats-tracker",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "Report process, traffic, database and job stats from Node apps to a shared dashboard",
   "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./tracker": "./lib/tracker.js",
+    "./dashboard": "./lib/dashboard.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "database/",
+    "functions/",
+    "routers/",
+    "views/",
+    "public/css/argon.min.css",
+    "public/vendor/nucleo/",
+    "public/vendor/@fortawesome/fontawesome-free/css/all.min.css",
+    "public/vendor/@fortawesome/fontawesome-free/webfonts/"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
-    "dashboard": "node ./dashboard.js"
+    "dashboard": "node ./dashboard.js",
+    "demo": "node ./demo/demo.js",
+    "test": "node --test test/*.test.js"
   },
   "repository": {
     "type": "git",
@@ -16,16 +39,13 @@
     "url": "https://github.com/Megapixel99/stats-tracker/issues"
   },
   "homepage": "https://github.com/Megapixel99/stats-tracker#readme",
-  "dependencies": {
-    "dotenv": "^16.4.7",
-    "ejs": "^3.1.10",
-    "express": "^4.21.2",
+  "devDependencies": {
+    "dotenv": "^17.2.3",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
     "express-ejs-layouts": "^2.5.1",
-    "helmet": "^8.0.0",
-    "luxon": "^3.5.0",
-    "mongoose": "^8.10.0",
-    "node-cleanup": "^2.1.2",
-    "pidusage": "^4.0.0",
-    "ws": "^8.18.0"
+    "express4": "npm:express@^4.22.3",
+    "luxon": "^3.7.2",
+    "mongoose": "^9.11.4"
   }
 }

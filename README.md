@@ -1,109 +1,172 @@
 # Stats Tracker
 
-This module exposes two functions: `dashboard` and `tracker`
+This module exposes two functions: `tracker` and `dashboard`.
 
-The `tracker` function can be used to relay information about the current NodeJS
-process to the dashboard (wherever the `dashboard` function is running).
+The `tracker` function relays information about the current Node.js process to
+the dashboard (wherever the `dashboard` function is running): CPU and memory,
+bytes sent and received, database rows read and written, and how long jobs take.
+
+The tracker has no dependencies. It collects stats in memory and POSTs them to
+the dashboard in one batch every 10 seconds, so a busy app makes the same six
+requests a minute as an idle one. Its timers never keep a process alive, so a
+cron job that uses it still exits on its own, and reports one last time as it
+does.
 
 ## tracker
 
-The tracker takes one argument, `config`.
-
-The `config` can be used to pass the URL of the dashboard (which exposes a web socket server) and the name of the application among other things.
-
 ```javascript
 const { tracker } = require('stats-tracker');
+// or, to be explicit that nothing else is loaded:
+// const tracker = require('stats-tracker/tracker');
 
-let t = tracker({
-  name: 'test',
-  pod: 'test-1', // useful if running multiple instances of the same application, defaults to the name, in this case `test`
-  logger: console, // defaults to console if nothing is passed
-  url: 'http://myDashboard', // HTTP route to to dashboard
+const t = tracker({
+  name: 'test', // required: the application, shared by all of its replicas
+  url: 'http://my-dashboard:3000', // where the dashboard runs; without it the tracker does nothing
+  pod: 'test-1', // tells replicas apart; defaults to os.hostname(), which is the pod name in Kubernetes
+  token: 'secret', // sent as a bearer token, if the dashboard was given one
+  flushInterval: 10000, // how often to report, in milliseconds
+  logger: console, // defaults to console; anything with `log` and `error` works
 });
 ```
 
-The functions that `tracker` exposes are:
+Leaving out `url` makes every call a no-op, which is handy for tests and local
+development: there is no need to wrap the tracker in `if` statements.
 
-`bytes.sent(data)`:
+### Recording stats
 
-The `data` argument the function takes needs to be a number and is assumed to be the number of bytes sent.
+| Function | Argument |
+| --- | --- |
+| `bytes.sent(n)` / `bytes.received(n)` | a number of bytes |
+| `data.sent(data)` / `data.received(data)` | raw data; strings and buffers count their byte length, anything else its JSON length |
+| `database.read(data)` / `database.written(data)` | an array of rows (its length is counted), or a single row |
+| `databaseRows.read(n)` / `databaseRows.written(n)` | a number of rows |
+| `job.start(jobName [, start])` | starts a job and returns `{ stop() }`; `start` defaults to `Date.now()` |
 
-`bytes.received(data)`:
-
-The `data` argument the function takes needs to be a number and is assumed to be the number of bytes received.
-
-`data.sent(data)`:
-
-The `data` argument the function takes is assumed to be raw data and thus will be serialized and converted to bytes.
-
-`data.received(data)`:
-
-The `data` argument the function takes is assumed to be raw data and thus will be serialized and converted to bytes.
-
-`database.read(data)`:
-
-The `data` argument the function takes is assumed to be a JSON array and the length of the JSON array will be sent to the dashboard.
-
-`database.written(data)`:
-
-The `data` argument the function takes is assumed to be a JSON array and the length of the JSON array will be sent to the dashboard.
-
-`databaseRows.sent(data)`:
-
-The `data` argument the function takes needs to be a number and is assumed to be the number of rows sent.
-
-`databaseRows.received(data)`:
-
-The `data` argument the function takes needs to be a number and is assumed to be the number of rows received.
-
-`job.start(jobName [, start])`:
-
-This function will start a job, and returns a job so you can stop it later, it is up to you to end the job manually with `job.stop()`.
-The `jobName` argument is the name of the job that you will see in the dashboard.
-The optional `start` argument is the time when the job started in milliseconds (defaults to `Date.now()`)
-
-`job.stop()`:
-
-This function will stop a job and data about the job will be sent to the dashboard.
-
-#### How to use job.start() and job.stop()
+Anything that is not a non-negative finite number is ignored, so a stray
+`undefined` or `'abc'` cannot corrupt the totals.
 
 ```javascript
-const { tracker } = require('stats-tracker');
-
-let t = tracker({
-  name: 'test',
-  pod: 'test-1',
-  logger: console, // defaults to console if nothing is passed
-});
-
-let job1 = t.job.start('jobName');
+const job = t.job.start('nightly sync');
 
 // some other code which takes a while to run goes here
 
-job1.stop();
+job.stop(); // returns the duration in milliseconds; calling it again does nothing
+```
+
+### HTTP middleware
+
+```javascript
+app.use(t.middleware());
+```
+
+The middleware works on the plain Node request and response, so it is the same
+for Express 4, Express 5, Connect or a bare `http.createServer` handler. For
+every request it counts the response bytes actually written, the request's
+`Content-Length`, and records a job named after the route that handled it
+(`GET /users/:id`, not `GET /users/123`), so the job list stays the size of the
+app's routes. Requests that matched no route are grouped as
+`GET (unmatched)`.
+
+```javascript
+app.use(t.middleware({
+  skip: (req) => req.path.startsWith('/_health'), // not counted at all
+  name: (req, res) => `${req.method} ${req.path}`, // replace the default job name
+}));
+```
+
+### Lifecycle
+
+| Function | |
+| --- | --- |
+| `flush()` | report now; resolves to whether the dashboard accepted it |
+| `close()` | stop reporting and send a final batch, which removes this pod from the dashboard's list right away |
+| `isConnected()` | whether the last report reached the dashboard |
+
+If the dashboard is down, counts are kept and sent with the next report that
+gets through. An outage is logged once, not on every retry. A report that
+timed out may still have been applied, so it is resent unchanged under the
+same id, and the dashboard skips an id it has already counted: nothing is
+counted twice.
+
+The final report is sent automatically when the event loop runs dry, which is
+how a cron job ends. Node does not allow that for `process.exit()` or a signal,
+so in those paths call `await t.close()` first:
+
+```javascript
+process.once('SIGTERM', async () => {
+  await t.close();
+  process.exit(0);
+});
 ```
 
 ## dashboard
 
-The `dashboard` function exposes a web-based dashboard (built using `express` and `ejs`) to see information about the various trackers that are feeding information to it (via web sockets).
+The `dashboard` function serves a web dashboard (built with Express 5 and EJS)
+showing what the trackers report, and the endpoint they report to. It stores
+everything in MongoDB.
 
-The `dashboard` function takes one argument, `config`.
+Its dependencies are not dependencies of this package, so installing it for
+the tracker alone pulls in nothing, and an app on Express 4 can use the
+tracker without a version conflict. Wherever the dashboard runs, install them
+alongside it (it checks for them, and for Express 5 or newer, when loaded):
 
-The `config` can be used to pass the port you want the dashboard to run on, the URL of the Mongo Database you will be using along with `usageLength` and a `logger`.
+```
+npm install stats-tracker express@5 ejs express-ejs-layouts luxon mongoose
+```
 
 ```javascript
 const { dashboard } = require('stats-tracker');
 
-dashboard({
+const dash = dashboard({
   port: 3000,
   mongoUrl: 'mongodb://yourUrl',
-  usageLength: 100, // determines how much CPU usage info to save in the database (for the average CPU usage to be determined), defaults to 100 and is updated every 5 seconds
+  token: 'secret', // if set, trackers must send it
+  timezone: 'America/Los_Angeles', // where "today" starts; defaults to 'UTC'
+  usageLength: 100, // CPU and memory samples kept per pod for the averages
+  inactiveAfter: 60000, // a pod that has not reported for this long is shown as gone
   logger: console, // defaults to console if nothing is passed
-  timezone: 'UTC', // defaults to 'UTC' if nothing is passed, supports the timezones in `Intl`
 });
+
+// dash.app is the Express app, to add routes of your own
+dash.app.get('/healthz', (req, res) => res.sendStatus(dash.isReady() ? 200 : 503));
+
+// dash.close() stops the server and disconnects from MongoDB
 ```
 
-If you want to spin up the dashboard as a standalone application you can run: `npm run dashboard`
+Applications are listed while they have a running pod, and for 7 days after
+they last reported (`recentDays`), so a cron job does not disappear between
+runs.
 
-### For a full (running/working) demo, please see `demo.js` in the demo folder (you will need a running mongo database for the demo)
+If you want to spin up the dashboard as a standalone application you can run
+`npm run dashboard` with `MONGO_URL` (and optionally `PORT`, `INGEST_TOKEN`,
+`TZ`, `USAGE_LENGTH`) set, or build the `Dockerfile`.
+
+### For a full (running/working) demo, see `demo/demo.js` (you will need a running MongoDB for the demo)
+
+## Upgrading from 1.x
+
+- Trackers now report over HTTP instead of a WebSocket. A 2.x tracker needs a
+  2.x dashboard; `url` values written for 1.x (`host:port`, `ws://host:port`)
+  are still accepted.
+- `pod` defaults to the hostname instead of `name`.
+- The dashboard runs on Express 5, and `dashboard()` returns `app`, `server`
+  and `close()` alongside the old `expressServer` and `appSetInactive`.
+- Jobs are stored as one document per application, day and job name, in a new
+  `jobstats` collection, and the day totals carry a `jobCount`. The `jobs`
+  array on the old day documents is no longer read.
+- `data.sent()`/`data.received()` count JSON or byte length rather than the
+  size of V8's serialisation.
+
+## Testing
+
+```
+npm test
+```
+
+The dashboard's end-to-end tests run against a real MongoDB and are skipped
+unless `MONGO_URL` is set:
+
+```
+docker run -d -p 27017:27017 mongo:7
+MONGO_URL=mongodb://127.0.0.1:27017 npm test
+```

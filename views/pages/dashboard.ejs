@@ -30,7 +30,7 @@
         <p class="h4 mb-0 text-white text-uppercase d-none d-lg-inline-block">Dashboard</p>
       </div>
     </nav>
-    <%- include('../partials/header.ejs') %>)
+    <%- include('../partials/header.ejs') %>
     <!-- Page content -->
     <div class="container-fluid mt--7">
       <div class="row mt-5 mb-5">
@@ -60,9 +60,12 @@
                   <% serverStats.forEach(function(server) { %>
                     <tr >
                       <th scope="row">
-                        <a href="/server/<%= server.name %>?bytesAndUtilization=<%= server.name %>&database=<%= server.name %>"> <%= server.name %> </a>
+                        <a href="/server/<%= encodeURIComponent(server.name) %>"> <%= server.name %> </a>
                       </th>
                       <td>
+                      <% if (server.pods.length === 0) { %>
+                        <p class="text-muted">not running</p>
+                      <% } %>
                       <% server.pods.forEach(function(pod, i) { %>
                         <p style="background-color: #93a0ed; font-weight: 600; color: white;"> <%= pod.name %> </p>
                         <% if (i < server.pods.length - 1) { %>
@@ -103,6 +106,11 @@
     </div>
   </div>
   <script type="text/javascript">
+    // Server and job names come from the apps being tracked, so they are
+    // escaped before they go anywhere near innerHTML.
+    const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[c]);
     setInterval(() => {
       fetch('/stats')
       .then((resp) => resp.json())
@@ -126,32 +134,33 @@
         document.getElementById('table').innerHTML = data.serverStats.map((server) => {
           return `<tr>
             <th scope="row">
-              <a href="/server/${server.name}"> ${server.name} </a>
+              <a href="/server/${encodeURIComponent(server.name)}"> ${esc(server.name)} </a>
             </th>
             <td>
+            ${server.pods.length === 0 ? '<p class="text-muted">not running</p>' : ''}
             ${server.pods.map(function(pod, i) {
-              return `<p style="background-color: #93a0ed; font-weight: 600; color: white;"> ${pod.name} </p> ${i < server.pods.length - 1 ? '<hr style="width: calc(100% + 3rem);">' : ''}`
+              return `<p style="background-color: #93a0ed; font-weight: 600; color: white;"> ${esc(pod.name)} </p> ${i < server.pods.length - 1 ? '<hr style="width: calc(100% + 3rem);">' : ''}`
             }).join('')}
             </td>
             <td>
             ${server.pods.map(function(pod, i) {
-              return `<p> <i class="fas ${pod.cpuUsage > pod.avgCpuUsage ? 'fa-arrow-up text-danger' : 'fa-arrow-down text-success'} mr-3"></i> ${pod.cpuUsage}% </p> ${i < server.pods.length - 1 ? '<hr style="width: calc(100% + 3rem);">' : ''}`
+              return `<p> <i class="fas ${pod.cpuUsage > pod.avgCpuUsage ? 'fa-arrow-up text-danger' : 'fa-arrow-down text-success'} mr-3"></i> ${esc(pod.cpuUsage)}% </p> ${i < server.pods.length - 1 ? '<hr style="width: calc(100% + 3rem);">' : ''}`
             }).join('')}
             </td>
             <td>
             ${server.pods.map(function(pod, i) {
-              return `<p> <i class="fas ${pod.memoryUsage > pod.avgMemoryUsage ? 'fa-arrow-up text-danger' : 'fa-arrow-down text-success'} mr-3"></i> ${pod.formatedMemoryUsage} </p> ${i < server.pods.length - 1 ? '<hr style="width: 100%;">' : ''}`
+              return `<p> <i class="fas ${pod.memoryUsage > pod.avgMemoryUsage ? 'fa-arrow-up text-danger' : 'fa-arrow-down text-success'} mr-3"></i> ${esc(pod.formatedMemoryUsage)} </p> ${i < server.pods.length - 1 ? '<hr style="width: 100%;">' : ''}`
             }).join('')}
             </td>
             <td>
-              ${server.bytesSent}
+              ${esc(server.bytesSent)}
             </td>
             <td>
-              ${server.bytesReceived}
+              ${esc(server.bytesReceived)}
             </td>
           </tr>`;
         }).join('');
       })
-    }, 1000);
+    }, 10000);
   </script>
 </body>

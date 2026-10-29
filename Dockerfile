@@ -1,16 +1,18 @@
-FROM node
+FROM node:24-slim
 
-ARG PORT=3000
-ENV PORT=$PORT
+WORKDIR /app
 
-ARG MONGO_URL=undefined
-ENV MONGO_URL=$MONGO_URL
+COPY package*.json ./
 
-ARG URLS=undefined
-ENV URLS=$URLS
+# The dashboard's dependencies are dev/peer dependencies of the package so
+# that apps which only report stats never install them; the image needs them.
+RUN npm ci --no-audit --no-fund
 
 COPY . .
 
-EXPOSE PORT
+ENV PORT=3000
+EXPOSE 3000
 
-CMD ["npm", "run", "dashboard"]
+USER node
+
+CMD ["node", "dashboard.js"]
