@@ -1,9 +1,10 @@
-const { dashboard } = require('./index.js');
-require('dotenv').config()
+const dashboard = require('./lib/dashboard.js');
+require('dotenv').config({ quiet: true });
 
 dashboard({
-  port: process.env.PORT,
+  port: Number(process.env.PORT) || 3000,
   mongoUrl: process.env.MONGO_URL,
-  urls: process.env.URLS.split(',').filter((e) => e),
-  usageLength: process.env.USAGE_LENGTH,
+  token: process.env.INGEST_TOKEN,
+  timezone: process.env.TZ || 'UTC',
+  usageLength: Number(process.env.USAGE_LENGTH) || 100,
 });

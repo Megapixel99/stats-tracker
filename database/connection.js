@@ -1,46 +1,51 @@
 const mongoose = require('mongoose');
 
-function connect(mongoConnectString, logger = console) {
-  mongoose.connect(mongoConnectString);
-  const mongoDB = mongoose.connection;
-  const options = { upsert: true, new: true, setDefaultsOnInsert: true };
+// A connection of its own rather than mongoose's global one, so the dashboard
+// can live inside an app that also uses mongoose without either clobbering
+// the other's models or connection.
+function connect(mongoUrl, logger = console, {
+  retryDelay = 5000,
+  serverSelectionTimeoutMS = 10000,
+} = {}) {
+  const connection = mongoose.createConnection();
+  let closing = false;
 
-  mongoDB.on('error', (err) => {
-    logger.error(`MongoDB error: \n${err}`);
-    throw err;
-  });
-  mongoDB.once('connected', () => {
-    logger.log('Connected to MongoDB!');
-    return true;
-  });
-}
-
-function closeConnection() {
-  const mongoDB = mongoose.connection;
-  if (mongoDB.readyState === 1) {
-    mongoDB.close();
-
-    mongoDB.on('error', (err) => {
-      logger.emerg(`MongoDB error: ${err}`);
-      throw err;
-    });
-    if (mongoDB.readyState === 3 || mongoDB.readyState === 0) {
-      mongoDB.once('disconnected', () => {
-        logger.log('\n' + 'Disconnected from MongoDB!');
-        return true;
-      });
-    } else {
-      throw (new Error('Unable to disconnect from MongoDB'));
+  connection.on('connected', () => logger.log('stats-tracker: connected to MongoDB'));
+  connection.on('disconnected', () => {
+    if (!closing) {
+      logger.error('stats-tracker: disconnected from MongoDB');
     }
-  }
+  });
+  // Without a listener an 'error' event would crash the process; the driver
+  // reconnects on its own once a connection has been made, so logging is
+  // all that is needed here.
+  connection.on('error', (err) => logger.error(`stats-tracker: MongoDB error: ${err.message}`));
+
+  // The driver does not retry a first connection that fails, which would
+  // leave a pod started while MongoDB was down unready forever.
+  const open = () => connection
+    .openUri(mongoUrl, { serverSelectionTimeoutMS })
+    .catch((err) => {
+      if (closing) {
+        throw err;
+      }
+      logger.error(`stats-tracker: could not connect to MongoDB, retrying in ${retryDelay / 1000}s: ${err.message}`);
+      return new Promise((resolve) => { setTimeout(resolve, retryDelay); }).then(open);
+    });
+
+  return {
+    connection,
+    opened: open(),
+    close: () => {
+      closing = true;
+      return connection.close();
+    },
+  };
 }
 
-function getConnectionStatus() {
-  return mongoose.connection.readyState;
-}
+const isConnected = (connection) => connection.readyState === mongoose.ConnectionStates.connected;
 
 module.exports = {
   connect,
-  closeConnection,
-  connectionStatus: getConnectionStatus,
+  isConnected,
 };
