@@ -1,4 +1,4 @@
-# Stats Tracker
+# tallyboard
 
 This module exposes two functions: `tracker` and `dashboard`.
 
@@ -15,9 +15,9 @@ does.
 ## tracker
 
 ```javascript
-const { tracker } = require('stats-tracker');
+const { tracker } = require('tallyboard');
 // or, to be explicit that nothing else is loaded:
-// const tracker = require('stats-tracker/tracker');
+// const tracker = require('tallyboard/tracker');
 
 const t = tracker({
   name: 'test', // required: the application, shared by all of its replicas
@@ -111,11 +111,11 @@ tracker without a version conflict. Wherever the dashboard runs, install them
 alongside it (it checks for them, and for Express 5 or newer, when loaded):
 
 ```
-npm install stats-tracker express@5 ejs express-ejs-layouts luxon mongoose
+npm install tallyboard express@5 ejs express-ejs-layouts luxon mongoose
 ```
 
 ```javascript
-const { dashboard } = require('stats-tracker');
+const { dashboard } = require('tallyboard');
 
 const dash = dashboard({
   port: 3000,
@@ -145,6 +145,9 @@ If you want to spin up the dashboard as a standalone application you can run
 
 ## Upgrading from 1.x
 
+- The package is published to npm as `tallyboard`. 1.x was installed from
+  GitHub as `stats-tracker`, a name already taken on npm, so update the
+  dependency and every `require('stats-tracker')`.
 - Trackers now report over HTTP instead of a WebSocket. A 2.x tracker needs a
   2.x dashboard; `url` values written for 1.x (`host:port`, `ws://host:port`)
   are still accepted.
