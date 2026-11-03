@@ -10,16 +10,16 @@ function connect(mongoUrl, logger = console, {
   const connection = mongoose.createConnection();
   let closing = false;
 
-  connection.on('connected', () => logger.log('stats-tracker: connected to MongoDB'));
+  connection.on('connected', () => logger.log('tallyboard: connected to MongoDB'));
   connection.on('disconnected', () => {
     if (!closing) {
-      logger.error('stats-tracker: disconnected from MongoDB');
+      logger.error('tallyboard: disconnected from MongoDB');
     }
   });
   // Without a listener an 'error' event would crash the process; the driver
   // reconnects on its own once a connection has been made, so logging is
   // all that is needed here.
-  connection.on('error', (err) => logger.error(`stats-tracker: MongoDB error: ${err.message}`));
+  connection.on('error', (err) => logger.error(`tallyboard: MongoDB error: ${err.message}`));
 
   // The driver does not retry a first connection that fails, which would
   // leave a pod started while MongoDB was down unready forever.
@@ -29,7 +29,7 @@ function connect(mongoUrl, logger = console, {
       if (closing) {
         throw err;
       }
-      logger.error(`stats-tracker: could not connect to MongoDB, retrying in ${retryDelay / 1000}s: ${err.message}`);
+      logger.error(`tallyboard: could not connect to MongoDB, retrying in ${retryDelay / 1000}s: ${err.message}`);
       return new Promise((resolve) => { setTimeout(resolve, retryDelay); }).then(open);
     });
 

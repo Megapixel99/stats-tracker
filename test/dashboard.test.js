@@ -15,7 +15,7 @@ let base;
 before(async () => {
   if (skip) return;
   const url = new URL(process.env.MONGO_URL);
-  url.pathname = `/stats_tracker_test_${process.pid}`;
+  url.pathname = `/tallyboard_test_${process.pid}`;
   dash = dashboard({
     port: 0,
     mongoUrl: url.toString(),
@@ -74,7 +74,7 @@ test('replicas add up, and the dashboard renders what they sent', { skip }, asyn
 
   const html = await fetch(`${base}/`).then((r) => r.text());
   assert.match(html, /e2e-app-a/);
-  assert.match(html, /<title>Stat Tracker<\/title>/);
+  assert.match(html, /<title>Tallyboard<\/title>/);
   const page = await fetch(`${base}/server/e2e-app`).then((r) => r.text());
   assert.match(page, /GET \/items\/:id/);
   const css = await fetch(`${base}/css/argon.min.css`);

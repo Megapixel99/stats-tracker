@@ -1,5 +1,5 @@
 {
-  "name": "stats-tracker",
+  "name": "tallyboard",
   "version": "2.0.0",
   "description": "Report process, traffic, database and job stats from Node apps to a shared dashboard",
   "main": "index.js",
