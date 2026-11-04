@@ -186,7 +186,7 @@ jobs:
       #
       # If this step fails with an authentication error, the trusted publisher has
       # not been set up yet: npmjs.com -> tallyboard -> Settings -> Trusted
-      # Publisher -> add a GitHub Actions publisher for Megapixel99/stats-tracker
+      # Publisher -> add a GitHub Actions publisher for Megapixel99/tallyboard
       # with workflow `release.yml`.
       - name: Publish to npm via trusted publishing
         id: npm_publish
