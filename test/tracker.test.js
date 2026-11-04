@@ -183,6 +183,15 @@ test('sends the ingest token when one is configured', async (t) => {
   assert.equal(dash.requests[0].headers.authorization, 'Bearer s3cret');
 });
 
+test('sends no authorization header without a token', async (t) => {
+  const dash = await fakeDashboard();
+  t.after(() => dash.close());
+  const st = make(dash.url);
+  t.after(() => st.close());
+  await st.flush();
+  assert.equal(dash.requests[0].headers.authorization, undefined);
+});
+
 test('close sends a final closing batch and stops listening for beforeExit', async (t) => {
   const dash = await fakeDashboard();
   t.after(() => dash.close());
