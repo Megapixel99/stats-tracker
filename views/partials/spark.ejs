@@ -1,0 +1,11 @@
+<%#
+  A 12-bar trend: the newest bucket, the one still in progress, in the
+  accent and the earlier ones in gray, whatever the period. The label
+  carries every value, for screen readers and as the table twin of the
+  tooltips.
+  values, buckets, format, label; small (optional)
+%>
+<% const max = Math.max(0, ...values); %>
+<div class="spark<%= locals.small ? ' small' : '' %>" role="img" aria-label="<%= label %>: <%= buckets.map((b, i) => `${b.label} ${format(values[i])}`).join('; ') %>">
+  <% values.forEach((v, i) => { %><span class="bar<%= buckets[i].current ? ' now' : '' %>" style="--h: <%= max ? Math.max(v > 0 ? 6 : 0, Math.round((v / max) * 100)) : 0 %>%" data-value="<%= format(v) %>" data-label="<%= buckets[i].label %>"></span><% }) %>
+</div>

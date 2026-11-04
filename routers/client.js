@@ -1,5 +1,17 @@
 const express = require('express');
-const { serverStats, serverJobs } = require('../functions/index.js');
+const { serverStats, serverJobs, periodOf } = require('../functions/index.js');
+
+// `?period=week` picks what the figures cover. `?fragment=1` returns only the
+// page's content, rendered from the same template, which the page fetches to
+// refresh itself in place.
+const render = (req, res, page, content, data) => {
+  const locals = { ...data, period: periodOf(req.query.period) };
+  if (req.query.fragment !== undefined) {
+    res.render(`partials/${content}`, { ...locals, layout: false });
+  } else {
+    res.render(`pages/${page}`, locals);
+  }
+};
 
 // Express 5 forwards a rejected promise to the error handler on its own, so
 // these handlers no longer need `.catch(next)`.
@@ -7,7 +19,10 @@ function clientRouter(models, config) {
   const router = express.Router();
 
   router.get('/', async (req, res) => {
-    res.render('pages/dashboard', await serverStats(models, config));
+    render(req, res, 'dashboard', 'overview', {
+      title: 'Tallyboard',
+      ...await serverStats(models, config),
+    });
   });
 
   router.get('/stats', async (req, res) => {
@@ -20,7 +35,7 @@ function clientRouter(models, config) {
       res.redirect('/');
       return;
     }
-    res.render('pages/serverInfo', jobs);
+    render(req, res, 'serverInfo', 'app', { title: `${jobs.name} · Tallyboard`, ...jobs });
   });
 
   router.get('/server/:serverName/jobs', async (req, res) => {

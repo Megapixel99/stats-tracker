@@ -1,0 +1,6 @@
+<%# running: number of pods reporting; lastActive: the last day the app reported %>
+<% if (running > 0) { %>
+  <span class="status ok"><span class="dot" aria-hidden="true"></span><%= running %> <%= running === 1 ? 'pod' : 'pods' %> running</span>
+<% } else { %>
+  <span class="status idle"><span class="dot" aria-hidden="true"></span>Idle<% if (lastActive) { %>, last active <%= fmt.day(lastActive) %><% } %></span>
+<% } %>

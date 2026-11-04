@@ -137,6 +137,18 @@ Applications are listed while they have a running pod, and for 7 days after
 they last reported (`recentDays`), so a cron job does not disappear between
 runs.
 
+The overview shows four figures for today, the past week, month or year
+(requests and jobs, data transferred, rows read, rows written), each with a
+12-bucket trend, and each app's share of them. An app's page adds its pods
+and its jobs: runs and average time in the period, and how long the last run
+took. Pages refresh themselves every 10 seconds; `?period=week` (or `day`,
+`month`, `year`) picks the period, and links keep it. The same data is
+available as JSON at `/stats` and `/server/:name/jobs`.
+
+The pages are plain HTML and one stylesheet, with no web fonts or CDN, so
+they work in a cluster with no internet access. They follow the system's
+light or dark mode.
+
 If you want to spin up the dashboard as a standalone application you can run
 `npm run dashboard` with `MONGO_URL` (and optionally `PORT`, `INGEST_TOKEN`,
 `TZ`, `USAGE_LENGTH`) set, or build the `Dockerfile`.

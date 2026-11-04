@@ -1,17 +1,26 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>Tallyboard</title>
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet">
-  <!-- Icons -->
-  <link href="/vendor/nucleo/css/nucleo.css" rel="stylesheet">
-  <link href="/vendor/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet">
-  <!-- Argon CSS -->
-  <link type="text/css" href="/css/argon.min.css?v=1.0.0" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title><%= typeof title === 'string' ? title : 'Tallyboard' %></title>
+  <link rel="icon" href="/assets/favicon.svg?v=<%= version %>" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/tallyboard.css?v=<%= version %>">
+  <script src="/assets/tallyboard.js?v=<%= version %>" defer></script>
 </head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+        <rect width="24" height="24" rx="6"></rect>
+        <path d="M7.5 6.5v11M10.5 6.5v11M13.5 6.5v11M16.5 6.5v11M5 15l14-6"></path>
+      </svg>
+      Tallyboard
+    </a>
+    <span class="conn" id="conn" role="status" hidden>Can't reach the dashboard. Retrying…</span>
+  </header>
   <%- body %>
+  <div class="tip" id="tip" hidden></div>
+</body>
 </html>
