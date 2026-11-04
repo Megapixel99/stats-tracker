@@ -1,0 +1,8 @@
+<div class="toolbar">
+  <nav class="periods" aria-label="Period">
+    <% Object.entries(PERIODS).forEach(([key, p]) => { %>
+      <a href="?period=<%= key %>" data-period="<%= key %>"<% if (key === period) { %> aria-current="true"<% } %>><%= p.label %></a>
+    <% }) %>
+  </nav>
+  <span class="updated">Updated <%= fmt.clock() %></span>
+</div>

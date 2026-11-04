@@ -1,0 +1,23 @@
+<%#
+  The four figures for the period, each with its 12-bucket trend.
+  P: periods[period]
+%>
+<% const t = P.totals;
+   const bytes = (v) => fmt.bytes(v, 1);
+   const tiles = [
+     { label: 'Requests & jobs', value: fmt.compact(t.jobs), exact: fmt.num(t.jobs), series: P.buckets.map((b) => b.jobs), format: fmt.num },
+     { label: 'Data transferred', value: bytes(t.sent + t.received), exact: `${fmt.num(t.sent + t.received)} bytes`, note: `${bytes(t.sent)} out · ${bytes(t.received)} in`, series: P.buckets.map((b) => b.sent + b.received), format: bytes },
+     { label: 'Rows read', value: fmt.compact(t.read), exact: fmt.num(t.read), series: P.buckets.map((b) => b.read), format: fmt.num },
+     { label: 'Rows written', value: fmt.compact(t.written), exact: fmt.num(t.written), series: P.buckets.map((b) => b.written), format: fmt.num },
+   ]; %>
+<section class="tiles" aria-label="<%= P.label %>">
+  <% tiles.forEach((tile) => { %>
+    <article class="tile">
+      <h2><%= tile.label %></h2>
+      <p class="value" title="<%= tile.exact %>"><%= tile.value %></p>
+      <p class="note"><%= tile.note || '' %></p>
+      <%- include('spark', { values: tile.series, buckets: P.buckets, format: tile.format, label: `${tile.label}, ${P.every.toLowerCase()}` }) %>
+      <p class="caption"><%= P.every %></p>
+    </article>
+  <% }) %>
+</section>

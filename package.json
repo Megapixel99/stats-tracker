@@ -1,6 +1,6 @@
 {
   "name": "tallyboard",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Report process, traffic, database and job stats from Node apps to a shared dashboard",
   "main": "index.js",
   "exports": {
@@ -16,10 +16,7 @@
     "functions/",
     "routers/",
     "views/",
-    "public/css/argon.min.css",
-    "public/vendor/nucleo/",
-    "public/vendor/@fortawesome/fontawesome-free/css/all.min.css",
-    "public/vendor/@fortawesome/fontawesome-free/webfonts/"
+    "public/assets/"
   ],
   "engines": {
     "node": ">=20.19.0"

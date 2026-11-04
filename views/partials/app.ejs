@@ -1,0 +1,101 @@
+<% const P = periods[period];
+   const live = pods.filter((pod) => pod.active);
+   const bytes = (v) => fmt.bytes(v, 1);
+   // The busiest jobs of the period first; jobs that did not run in it stay
+   // listed, below, so the list does not jump about as the period changes.
+   const rows = [...jobs].sort((a, b) => b.periods[period].runs - a.periods[period].runs || a.name.localeCompare(b.name)); %>
+<div class="content" data-period="<%= period %>">
+  <div class="page-head">
+    <a class="back" href="/?period=<%= period %>"><span aria-hidden="true">←</span> All apps</a>
+    <div class="title-row">
+      <h1><%= name %></h1>
+      <%- include('status', { running: live.length, lastActive }) %>
+    </div>
+  </div>
+
+  <%- include('toolbar') %>
+  <%- include('tiles', { P }) %>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Pods</h2>
+      <span class="count"><%= live.length %> running</span>
+    </div>
+    <% if (pods.length === 0) { %>
+      <p class="empty">No pods are running. A cron job shows up here while it runs.</p>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Pod</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="num">CPU</th>
+              <th scope="col" class="num">Memory</th>
+              <th scope="col" class="num">Up for</th>
+              <th scope="col" class="num">Last report</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% pods.forEach((pod) => { %>
+              <tr<% if (!pod.active) { %> class="dim"<% } %>>
+                <th scope="row"><%= pod.name %></th>
+                <td>
+                  <% if (pod.active) { %>
+                    <span class="status ok"><span class="dot" aria-hidden="true"></span>Running</span>
+                  <% } else { %>
+                    <span class="status idle"><span class="dot" aria-hidden="true"></span>Stopped</span>
+                  <% } %>
+                </td>
+                <td class="num"><%= Number(pod.cpuUsage).toFixed(1) %>% <span class="sub">avg <%= pod.avgCpuUsage.toFixed(1) %>%</span></td>
+                <td class="num"><%= bytes(pod.memoryUsage) %> <span class="sub">avg <%= bytes(pod.avgMemoryUsage) %></span></td>
+                <td class="num"><%= pod.active ? fmt.uptime(pod.uptime) : '–' %></td>
+                <td class="num"><%= fmt.ago(pod.lastSeen) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Jobs</h2>
+      <span class="count"><%= jobs.length %> <%= jobs.length === 1 ? 'job' : 'jobs' %> in the past year</span>
+    </div>
+    <% if (jobs.length === 0) { %>
+      <p class="empty">No requests or jobs recorded in the past year.</p>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Job</th>
+              <th scope="col" class="num">Runs</th>
+              <th scope="col" class="num">Average time</th>
+              <th scope="col" class="num">Last run took</th>
+              <th scope="col" class="num">Last run</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach((job) => {
+                 const p = job.periods[period];
+                 const slow = job.averageTime > 0 && job.lastRanTime >= 1.5 * job.averageTime; %>
+              <tr<% if (p.runs === 0) { %> class="dim"<% } %>>
+                <th scope="row" class="job"><%= job.name %></th>
+                <td class="num"><%= fmt.num(p.runs) %></td>
+                <td class="num"><%= p.runs > 0 ? fmt.duration(p.averageTime) : '–' %></td>
+                <td class="num">
+                  <%= fmt.duration(job.lastRanTime) %>
+                  <% if (slow) { %><span class="slow" title="Slower than this job's average over the past year (<%= fmt.duration(job.averageTime) %>)"><%= (job.lastRanTime / job.averageTime).toFixed(1) %>× avg</span><% } %>
+                </td>
+                <td class="num" title="<%= job.lastRan %>"><%= fmt.ago(job.lastRanAt) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+</div>

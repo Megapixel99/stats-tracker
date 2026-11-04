@@ -1,0 +1,58 @@
+<% const P = periods[period];
+   const running = serverStats.filter((app) => app.pods.length > 0).length;
+   const bytes = (v) => fmt.bytes(v, 1); %>
+<div class="content" data-period="<%= period %>">
+  <%- include('toolbar') %>
+  <%- include('tiles', { P }) %>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Apps</h2>
+      <span class="count"><%= serverStats.length %> listed · <%= running %> running</span>
+    </div>
+    <% if (serverStats.length === 0) { %>
+      <p class="empty">No app has reported yet. Give a tracker this dashboard's address as its <code>url</code> and it shows up here within ten seconds.</p>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">App</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="num">Requests &amp; jobs</th>
+              <th scope="col"><span class="sr-only">Trend, </span><span aria-hidden="true"><%= P.every %></span></th>
+              <th scope="col" class="num">Data out / in</th>
+              <th scope="col" class="num">Rows read</th>
+              <th scope="col" class="num">Rows written</th>
+              <th scope="col" class="num" title="Latest sample, summed across the app's pods">CPU</th>
+              <th scope="col" class="num" title="Latest sample, summed across the app's pods">Memory</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% serverStats.forEach((app) => {
+                 const t = app.periods[period].totals;
+                 const cpu = app.pods.reduce((sum, pod) => sum + Number(pod.cpuUsage), 0);
+                 const memory = app.pods.reduce((sum, pod) => sum + pod.memoryUsage, 0); %>
+              <tr>
+                <th scope="row"><a href="/server/<%= encodeURIComponent(app.name) %>?period=<%= period %>"><%= app.name %></a></th>
+                <td><%- include('status', { running: app.pods.length, lastActive: app.lastActive }) %></td>
+                <td class="num"><%= fmt.num(t.jobs) %></td>
+                <td><%- include('spark', { values: app.periods[period].jobs, buckets: P.buckets, format: fmt.num, small: true, label: `${app.name}, requests and jobs, ${P.every.toLowerCase()}` }) %></td>
+                <td class="num"><%= bytes(t.sent) %> <span class="sub">/ <%= bytes(t.received) %></span></td>
+                <td class="num"><%= fmt.num(t.read) %></td>
+                <td class="num"><%= fmt.num(t.written) %></td>
+                <% if (app.pods.length > 0) { %>
+                  <td class="num"><%= cpu.toFixed(1) %>%</td>
+                  <td class="num"><%= bytes(memory) %></td>
+                <% } else { %>
+                  <td class="num none">–</td>
+                  <td class="num none">–</td>
+                <% } %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+</div>

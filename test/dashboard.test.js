@@ -61,6 +61,10 @@ test('replicas add up, and the dashboard renders what they sent', { skip }, asyn
   assert.equal(row.bytesSent, '505 Bytes');
   assert.equal(stats.database.read.day, '10');
   assert.equal(stats.utilized.day, '10');
+  assert.equal(stats.periods.day.totals.jobs, 10);
+  assert.equal(stats.periods.year.buckets.length, 12);
+  assert.equal(row.periods.week.totals.sent, 505);
+  assert.equal(row.periods.week.jobs.at(-1), 10);
 
   const pod = await dash.models.server.findOne({ pod: 'e2e-app-a' }).lean();
   assert.equal(pod.usage.length, 3, 'usage history is capped at usageLength');
@@ -71,14 +75,22 @@ test('replicas add up, and the dashboard renders what they sent', { skip }, asyn
   assert.equal(jobs.jobs[0].name, 'GET /items/:id');
   assert.equal(jobs.jobs[0].num, 10);
   assert.ok(jobs.jobs[0].averageTime >= 20);
+  assert.equal(jobs.jobs[0].periods.day.runs, 10);
+  assert.deepEqual(jobs.pods.map((p) => p.name), ['e2e-app-a', 'e2e-app-b']);
 
   const html = await fetch(`${base}/`).then((r) => r.text());
-  assert.match(html, /e2e-app-a/);
+  assert.match(html, /e2e-app/);
+  assert.match(html, /2 pods running/);
   assert.match(html, /<title>Tallyboard<\/title>/);
+  // Pods are listed on the app's own page.
   const page = await fetch(`${base}/server/e2e-app`).then((r) => r.text());
   assert.match(page, /GET \/items\/:id/);
-  const css = await fetch(`${base}/css/argon.min.css`);
-  assert.equal(css.status, 200);
+  assert.match(page, /e2e-app-a/);
+  assert.match(page, /<title>e2e-app · Tallyboard<\/title>/);
+  for (const asset of ['tallyboard.css', 'tallyboard.js', 'favicon.svg']) {
+    // eslint-disable-next-line no-await-in-loop
+    assert.equal((await fetch(`${base}/assets/${asset}`)).status, 200, asset);
+  }
 
   // A replica that shuts down cleanly disappears from the pod list at once,
   // but what it reported stays in the totals.
@@ -141,6 +153,26 @@ test('names are escaped in the rendered page', { skip }, async () => {
   assert.doesNotMatch(html, /<img src=x/);
   assert.match(html, /&lt;img src=x/);
   await evil.close();
+});
+
+test('?period picks what the figures cover, and ?fragment returns just the content', { skip }, async () => {
+  const text = (path) => fetch(`${base}${path}`).then((r) => r.text());
+
+  const week = await text('/?period=week');
+  assert.match(week, /<html/);
+  assert.match(week, /<div class="content" data-period="week">/);
+  assert.match(week, /aria-current="true">Past week</);
+
+  const fragment = await text('/?period=month&fragment=1');
+  assert.doesNotMatch(fragment, /<html|<head/);
+  assert.match(fragment, /<div class="content" data-period="month">/);
+
+  // Anything else falls back to today rather than failing.
+  assert.match(await text('/?period=__proto__'), /data-period="day"/);
+
+  const app = await text('/server/e2e-app?period=year&fragment=1');
+  assert.match(app, /data-period="year"/);
+  assert.match(app, /GET \/items\/:id/);
 });
 
 test('an unknown server redirects home and its jobs 404, as in 1.x', { skip }, async () => {
