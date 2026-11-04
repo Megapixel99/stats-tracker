@@ -173,3 +173,13 @@ unless `MONGO_URL` is set:
 docker run -d -p 27017:27017 mongo:7
 MONGO_URL=mongodb://127.0.0.1:27017 npm test
 ```
+
+## Releasing
+
+Bump `version` in `package.json` (`npm version minor --no-git-tag-version`)
+and merge it to `master`. The Release workflow then runs the tests against
+MongoDB, tags `vX.Y.Z`, creates the GitHub release, and publishes to npm
+(trusted publishing, no token) and to GitHub Packages as
+`@megapixel99/tallyboard`. A version that is already tagged and published is
+left alone, and a run that failed halfway can be finished from the Actions
+tab with "Run workflow".
