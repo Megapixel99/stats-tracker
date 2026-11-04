@@ -23,7 +23,7 @@ const t = tracker({
   name: 'test', // required: the application, shared by all of its replicas
   url: 'http://my-dashboard:3000', // where the dashboard runs; without it the tracker does nothing
   pod: 'test-1', // tells replicas apart; defaults to os.hostname(), which is the pod name in Kubernetes
-  token: 'secret', // sent as a bearer token, if the dashboard was given one
+  token: 'secret', // optional: only if the dashboard requires one (see "Requiring a token")
   flushInterval: 10000, // how often to report, in milliseconds
   logger: console, // defaults to console; anything with `log` and `error` works
 });
@@ -120,7 +120,7 @@ const { dashboard } = require('tallyboard');
 const dash = dashboard({
   port: 3000,
   mongoUrl: 'mongodb://yourUrl',
-  token: 'secret', // if set, trackers must send it
+  token: 'secret', // optional: refuse reports that do not carry it (see "Requiring a token")
   timezone: 'America/Los_Angeles', // where "today" starts; defaults to 'UTC'
   usageLength: 100, // CPU and memory samples kept per pod for the averages
   inactiveAfter: 60000, // a pod that has not reported for this long is shown as gone
@@ -132,6 +132,15 @@ dash.app.get('/healthz', (req, res) => res.sendStatus(dash.isReady() ? 200 : 503
 
 // dash.close() stops the server and disconnects from MongoDB
 ```
+
+### Requiring a token (optional)
+
+The dashboard takes reports from anything that can reach `/api/v1/ingest`.
+On a private network, or inside a Kubernetes cluster where only pods can
+reach it, that is all you need. If it is reachable from elsewhere, give the
+dashboard a `token`: it then refuses any report without
+`Authorization: Bearer <token>`, and each tracker sends the same value as its
+own `token`.
 
 Applications are listed while they have a running pod, and for 7 days after
 they last reported (`recentDays`), so a cron job does not disappear between

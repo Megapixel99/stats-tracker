@@ -118,6 +118,32 @@ test('the ingest endpoint checks the token and the batch', { skip }, async () =>
   assert.equal((await post({ name: 'x', pod: 'x-1' })).status, 204);
 });
 
+// The token is optional: a dashboard that was not given one, as inside a
+// Kubernetes cluster, takes reports that carry none.
+test('a dashboard without a token takes reports without one', { skip }, async () => {
+  const url = new URL(process.env.MONGO_URL);
+  url.pathname = `/tallyboard_test_${process.pid}`;
+  const open = dashboard({ port: 0, mongoUrl: url.toString(), logger: quietLogger() });
+  await new Promise((resolve) => { open.server.once('listening', resolve); });
+  await open.ready;
+  try {
+    const t = tracker({
+      name: 'open-app',
+      pod: 'open-app-1',
+      url: `http://127.0.0.1:${open.server.address().port}`,
+      flushInterval: 3600000,
+      logger: quietLogger(),
+    });
+    t.databaseRows.read(4);
+    assert.equal(await t.flush(), true);
+    await t.close();
+    const day = await open.models.stats.findOne({ server: 'open-app' }).lean();
+    assert.equal(day.databaseRows.read, 4);
+  } finally {
+    await open.close();
+  }
+});
+
 test('the same batch sent twice is counted once', { skip }, async () => {
   const body = {
     id: 'boot-abc:1', name: 'dup-app', pod: 'dup-app-1', rows: { read: 9 }, jobCount: 1,
