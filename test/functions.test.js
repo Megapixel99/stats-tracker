@@ -57,11 +57,15 @@ test('each period has its total and a 12-bucket trend at its own granularity', (
   ['day', 'week', 'month'].forEach((p) => {
     assert.equal(periods[p].buckets.at(-1).jobs, periods[p].totals.jobs, p);
   });
-  // Only the buckets inside the period are drawn in the accent.
-  assert.deepEqual(
-    ['day', 'week', 'month', 'year'].map((p) => periods[p].buckets.filter((b) => b.current).length),
-    [1, 1, 1, 12],
-  );
+  // Only the newest bucket, the one still in progress, is drawn in the
+  // accent, for the year as for the rest.
+  ['day', 'week', 'month', 'year'].forEach((p) => {
+    assert.deepEqual(
+      periods[p].buckets.map((b) => b.current),
+      [...Array(11).fill(false), true],
+      p,
+    );
+  });
   assert.equal(periods.day.buckets.at(-1).label, 'Tue, Nov 3');
   assert.equal(periods.month.buckets.at(-1).label, 'Oct 4 – Nov 3');
   assert.equal(periods.month.buckets[0].label, 'Nov 4 – Dec 3, 2025');

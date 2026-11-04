@@ -119,8 +119,8 @@ const bucketLabel = (from, to, unit, thisYear) => {
     : `${first.toFormat('LLL d')} – ${last.toFormat('LLL d')}${year}`;
 };
 
-// Where the 12 buckets of each period start and end, and which of them fall
-// inside the period itself. The same for every app, so worked out once.
+// Where the 12 buckets of each period start and end, and which one is still
+// in progress (the newest). The same for every app, so worked out once.
 const periodEdges = (now) => Object.fromEntries(Object.entries(PERIODS).map(([key, period]) => {
   const since = now.minus({ [period.unit]: 1 }).toMillis();
   const edges = Array.from({ length: BUCKETS + 1 }, (_, k) => now.minus({ [period.bucket]: BUCKETS - k }));
@@ -129,7 +129,7 @@ const periodEdges = (now) => Object.fromEntries(Object.entries(PERIODS).map(([ke
     edges: edges.map((e) => e.toMillis()),
     buckets: edges.slice(0, BUCKETS).map((from, i) => ({
       label: bucketLabel(from, edges[i + 1], period.bucket, now.year),
-      current: from.toMillis() >= since,
+      current: i === BUCKETS - 1,
     })),
   }];
 }));

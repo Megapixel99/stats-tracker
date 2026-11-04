@@ -199,9 +199,11 @@ h1 {
 
 /* Sparkline: thin columns on a hairline baseline */
 
+/* Bars are capped in width; what is left over goes between them, not after. */
 .spark {
   display: flex;
   align-items: flex-end;
+  justify-content: space-between;
   gap: 2px;
   height: 40px;
   border-bottom: 1px solid var(--axis);
