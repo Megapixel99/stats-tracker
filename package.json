@@ -28,14 +28,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Megapixel99/stats-tracker.git"
+    "url": "git+https://github.com/Megapixel99/tallyboard.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Megapixel99/stats-tracker/issues"
+    "url": "https://github.com/Megapixel99/tallyboard/issues"
   },
-  "homepage": "https://github.com/Megapixel99/stats-tracker#readme",
+  "homepage": "https://github.com/Megapixel99/tallyboard#readme",
   "devDependencies": {
     "dotenv": "^17.2.3",
     "ejs": "^7.0.2",
