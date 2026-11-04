@@ -1,0 +1,255 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+    # A version bump always touches package.json, so this is a cheap pre-filter.
+    # The check job below still compares the version before anything is published.
+    paths: ['package.json']
+  # Lets a partially failed release be finished without another commit, and
+  # tags a version that was published by hand before this workflow existed.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Has the version changed?
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      tag_missing: ${{ steps.read.outputs.tag_missing }}
+      npm_missing: ${{ steps.read.outputs.npm_missing }}
+      release_needed: ${{ steps.read.outputs.release_needed }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+
+      - name: Compare package.json against the tags and the registry
+        id: read
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          name="$(node -p 'require("./package.json").name')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse -q --verify "refs/tags/v$version" > /dev/null; then
+            tag_missing=false
+          else
+            tag_missing=true
+          fi
+          echo "tag_missing=$tag_missing" >> "$GITHUB_OUTPUT"
+
+          # `npm view` exits non-zero when that exact version is not published.
+          if npm view "$name@$version" version > /dev/null 2>&1; then
+            npm_missing=false
+          else
+            npm_missing=true
+          fi
+          echo "npm_missing=$npm_missing" >> "$GITHUB_OUTPUT"
+
+          if [ "$tag_missing" = false ] && [ "$npm_missing" = false ]; then
+            echo "release_needed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$name@$version is already tagged and published; nothing to do."
+          else
+            echo "release_needed=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Releasing $name@$version (tag missing: $tag_missing, npm missing: $npm_missing)."
+          fi
+
+  release:
+    name: Release ${{ needs.check.outputs.version }}
+    needs: check
+    if: needs.check.outputs.release_needed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the tag and the GitHub release
+      packages: write   # publish to GitHub Packages
+      id-token: write   # mint the OIDC token npm trusted publishing verifies
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    # The dashboard's end-to-end tests run against a real MongoDB and are
+    # skipped without one, which would let a broken dashboard through. MongoDB 7
+    # rather than 8: 8 refuses to start on Linux kernels 6.19 and newer
+    # (SERVER-121912), and a runner image will get there.
+    services:
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Deliberately no registry-url here. setup-node would write an .npmrc
+      # containing `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`, and this
+      # job sets no such token, so npm sends an unresolved credential and answers
+      # E404 rather than falling back to OIDC. registry.npmjs.org is the default
+      # registry anyway, and trusted publishing needs no auth line at all.
+      # Unlike a zero-dependency package, the tests need the dashboard's
+      # dependencies (express, ejs, mongoose...), which are dev dependencies here,
+      # so this one does have a lockfile to cache and install from.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install the dependencies the tests need
+        run: npm ci
+
+      # Publishing cannot be undone, so the suite gates it here, with the
+      # dashboard's end-to-end tests included.
+      - name: Tests must pass before anything is published
+        env:
+          MONGO_URL: mongodb://127.0.0.1:27017
+        run: npm test
+
+      # Each publishing step is guarded by its own output from the check job, so a
+      # run that failed halfway can be repeated with workflow_dispatch and will
+      # only do what is still missing rather than failing on "already exists".
+      - name: Tag and create the GitHub release
+        if: needs.check.outputs.tag_missing == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --generate-notes \
+            --verify-tag
+
+      # OIDC publishing landed in npm 11.5.1. setup-node resolves 24.x to whatever
+      # is newest at the time, and a release must not turn on which npm that
+      # bundles; lexindex saw ENEEDAUTH from a bundled npm that cleared the floor.
+      - name: Use the newest npm
+        if: needs.check.outputs.npm_missing == 'true'
+        run: |
+          echo "bundled: $(npm --version)"
+          npm install -g npm@latest
+          echo "now:     $(npm --version)"
+
+      - name: Publishing preconditions
+        if: needs.check.outputs.npm_missing == 'true'
+        run: |
+          echo "npm:  $(npm --version)"
+          echo "OIDC request URL present:   ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}"
+          echo "OIDC request token present: ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+yes}"
+          echo "registry: $(npm config get registry)"
+          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
+            echo "userconfig $NPM_CONFIG_USERCONFIG contains (values redacted):"
+            sed 's/=.*/=<redacted>/' "$NPM_CONFIG_USERCONFIG" | sed 's/^/  /'
+            echo "note: an _authToken line here overrides trusted publishing."
+          else
+            echo "no userconfig .npmrc, which is what trusted publishing wants."
+          fi
+
+      # A trusted publisher is matched against the claims in this token. Printing
+      # them turns "npm says ENEEDAUTH" into a concrete comparison against what is
+      # registered on npmjs.com: a workflow filename that does not match, or a
+      # publisher pinned to an environment this job does not declare, both show up
+      # here. The token itself is never printed, only its claims.
+      - name: Show the OIDC claims npm will be matched on
+        if: needs.check.outputs.npm_missing == 'true'
+        run: |
+          curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org" \
+            | node -e 'const fs=require("fs");fs.writeFileSync("/tmp/idt.json",fs.readFileSync(0,"utf8"))'
+          node -e '
+            const fs = require("fs");
+            const raw = JSON.parse(fs.readFileSync("/tmp/idt.json", "utf8"));
+            if (!raw.value) { console.log("no token returned:", JSON.stringify(raw).slice(0, 200)); process.exit(0); }
+            const claims = JSON.parse(Buffer.from(raw.value.split(".")[1], "base64url").toString());
+            for (const k of ["iss", "aud", "sub", "repository", "repository_owner",
+                             "workflow", "workflow_ref", "job_workflow_ref", "ref",
+                             "event_name", "environment", "runner_environment"]) {
+              console.log(`  ${k}: ${claims[k] === undefined ? "(absent)" : claims[k]}`);
+            }
+          '
+          rm -f /tmp/idt.json
+
+      # No token. npm verifies the OIDC token minted by id-token: write against
+      # the trusted publisher configured for this package, which has to name this
+      # repository and this workflow file (release.yml). Provenance attestations
+      # are generated automatically, so --provenance is not passed.
+      #
+      # If this step fails with an authentication error, the trusted publisher has
+      # not been set up yet: npmjs.com -> tallyboard -> Settings -> Trusted
+      # Publisher -> add a GitHub Actions publisher for Megapixel99/stats-tracker
+      # with workflow `release.yml`.
+      - name: Publish to npm via trusted publishing
+        id: npm_publish
+        if: needs.check.outputs.npm_missing == 'true'
+        # The run still fails at the end; this only stops one registry's failure
+        # from skipping the other.
+        continue-on-error: true
+        # Verbose so that npm's own account of the OIDC exchange, or its silence
+        # about attempting one, is on the record rather than inferred.
+        run: npm publish --loglevel verbose
+
+      # GitHub Packages only accepts a package whose scope matches the repository
+      # owner, and this package is published unscoped on npm. The name is
+      # rewritten for that registry alone, in the runner's working copy, and
+      # restored afterwards, so the npm name is untouched. GitHub Packages has no
+      # OIDC equivalent, so it uses the built-in GITHUB_TOKEN.
+      - uses: actions/setup-node@v7
+        if: ${{ !cancelled() }}
+        with:
+          node-version: 24.x
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@megapixel99'
+
+      - name: Publish to GitHub Packages
+        if: ${{ !cancelled() }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          scoped="@megapixel99/$(node -p 'require("./package.json").name')"
+          if npm view "$scoped@$VERSION" version \
+               --registry=https://npm.pkg.github.com > /dev/null 2>&1; then
+            echo "::notice::$scoped@$VERSION is already on GitHub Packages."
+            exit 0
+          fi
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.name = '$scoped';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          npm publish --registry=https://npm.pkg.github.com
+          git checkout -- package.json
+
+      - name: Fail the run if npm did not publish
+        if: needs.check.outputs.npm_missing == 'true' && steps.npm_publish.outcome == 'failure'
+        run: |
+          echo "::error::npm publish failed. A 404 on PUT means npm rejected the credential."
+          echo "Trusted publishing requires a publisher configured on the npm side:"
+          echo "  npmjs.com -> tallyboard -> Settings -> Trusted Publisher"
+          echo "  -> add a GitHub Actions publisher for ${{ github.repository }}, workflow release.yml"
+          echo "The step above prints whether the OIDC token was available and whether an"
+          echo ".npmrc auth line was overriding it."
+          exit 1
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "### Released v$VERSION"
+            echo
+            echo "- tag and GitHub release: ${{ needs.check.outputs.tag_missing == 'true' && 'created' || 'already existed' }}"
+            echo "- npm: ${{ needs.check.outputs.npm_missing == 'true' && 'published' || 'already published' }}, https://www.npmjs.com/package/tallyboard/v/$VERSION"
+            echo "- GitHub Packages: \`@megapixel99/tallyboard@$VERSION\`"
+            echo
+            echo "npm was published with trusted publishing (OIDC); no long-lived token is stored in this repository."
+          } >> "$GITHUB_STEP_SUMMARY"
